@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Моя большая стройка 3D</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game"></canvas>
+
+      <div id="top-ui">
+        <div id="hint">Нажми ИГРАТЬ</div>
+        <div id="top-right">
+          <div id="stars">⭐ 0</div>
+          <div id="sound-controls" aria-label="Громкость">
+            <button type="button" id="btn-mute" aria-label="Включить или выключить звук">🔊</button>
+            <button type="button" id="btn-vol-down" aria-label="Тише">−</button>
+            <button type="button" id="btn-vol-up" aria-label="Громче">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="hud">
+        <div id="count-pop" aria-hidden="true"></div>
+
+        <div id="controls">
+          <div class="dpad" aria-label="Управление">
+            <button type="button" class="ctrl-btn" data-move="forward" aria-label="Вперёд">▲</button>
+            <div class="dpad-mid">
+              <button type="button" class="ctrl-btn" data-move="left" aria-label="Влево">◀</button>
+              <span class="dpad-spacer" aria-hidden="true"></span>
+              <button type="button" class="ctrl-btn" data-move="right" aria-label="Вправо">▶</button>
+            </div>
+            <button type="button" class="ctrl-btn" data-move="back" aria-label="Назад">▼</button>
+          </div>
+
+          <button type="button" id="btn-dig" aria-label="Копать">
+            <span class="dig-icon">⛏️</span>
+            <span class="action-label">КОПАТЬ</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="reward-screen" hidden>
+        <div class="reward-card">
+          <p class="reward-badge">Задание выполнено!</p>
+          <div id="reward-stars" class="reward-stars" aria-hidden="true"></div>
+          <h2 id="reward-title">Отличная работа!</h2>
+          <p id="reward-text">Ты заработал звезду!</p>
+          <button type="button" id="btn-next">ДАЛЬШЕ</button>
+        </div>
+      </div>
+
+      <div id="start-screen">
+        <div class="start-card">
+          <p class="start-badge">Игра для детей 4–5 лет</p>
+          <h1>МОЯ БОЛЬШАЯ СТРОЙКА</h1>
+          <p class="start-sub">Управляй экскаватором и выкопай яму для дома</p>
+          <button type="button" id="btn-play">🏗️ ИГРАТЬ</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/vendor/three.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/math.js"></script>
+    <script src="js/levels.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/rewards.js"></script>
+    <script src="js/tasks.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/world.js"></script>
+    <script src="js/vehicles.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>
