@@ -6,6 +6,16 @@
     this.paused = false;
     this.clock = new THREE.Clock();
     this.zoom = 1;
+    this.camYaw = 0;
+    this.camPitch = 0.28;
+    this.camDistance = 18;
+    this._lookPointers = {};
+    this._lookDragging = false;
+    this._lookLastX = 0;
+    this._lookLastY = 0;
+    this._pinchStartDist = 0;
+    this._pinchStartZoom = 1;
+    this._cameraFocus = 'vehicle';
     this.lookTarget = new THREE.Vector3();
     this.progress = MBS.loadProgress();
     this.pendingPhase = null;
@@ -48,6 +58,7 @@
     this._bindUI();
     this._bindResize();
     this._bindZoom();
+    this._bindLook();
   }
 
   Game.prototype.start = function () {
@@ -75,13 +86,13 @@
   Game.prototype._createScene = function () {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x8fd6f2);
-    this.scene.fog = new THREE.Fog(0x8fd6f2, 40, 85);
+    this.scene.fog = new THREE.Fog(0x8fd6f2, 48, 105);
   };
 
   Game.prototype._createCamera = function () {
     this.camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 200);
-    this.camera.position.set(12, 16, 18);
-    this.lookTarget.set(-5.4, 1, 0);
+    this.camera.position.set(8, 6, 16);
+    this.lookTarget.set(0, 1.2, 0);
     this.camera.lookAt(this.lookTarget);
     this._applyViewSize();
   };
@@ -133,9 +144,7 @@
       } else if (self.pendingPhase === 'finish') {
         self._beginFinishPhase();
       } else if (self.pendingPhase === 'free') {
-        self.ui.setHint(self.tasks.level.hintFree);
-        self.ui.speak(self.tasks.level.voiceFree);
-        self.ui.setAction('👍', 'УРА');
+        self._beginFreeRoam();
       }
       self.idleTime = 0;
       self.pendingPhase = null;
@@ -149,6 +158,9 @@
     };
     this.ui.onDigRelease = function () {
       self.input.releaseDig();
+    };
+    this.ui.onVehiclePick = function (name) {
+      self._setActiveVehicle(name);
     };
   };
 
@@ -191,10 +203,114 @@
       'wheel',
       function (event) {
         event.preventDefault();
-        self.zoom = MBS.clamp(self.zoom + event.deltaY * 0.0012, 0.78, 1.45);
+        self.zoom = MBS.clamp(self.zoom + event.deltaY * 0.0012, 0.62, 1.7);
       },
       { passive: false },
     );
+  };
+
+  Game.prototype._bindLook = function () {
+    var self = this;
+
+    function isLookTarget(el) {
+      if (!el || !el.closest) {
+        return true;
+      }
+      if (el.closest('button')) {
+        return false;
+      }
+      if (el.closest('#controls') || el.closest('#vehicle-bar') || el.closest('#sound-controls')) {
+        return false;
+      }
+      if (el.closest('#start-screen') && !self.startHidden()) {
+        return false;
+      }
+      if (el.closest('#reward-screen.is-visible')) {
+        return false;
+      }
+      return true;
+    }
+
+    function startLook(x, y) {
+      self._lookDragging = true;
+      self._lookLastX = x;
+      self._lookLastY = y;
+      self.canvas.classList.add('is-looking');
+    }
+
+    function moveLook(x, y) {
+      if (!self._lookDragging) {
+        return;
+      }
+      var dx = x - self._lookLastX;
+      var dy = y - self._lookLastY;
+      self._lookLastX = x;
+      self._lookLastY = y;
+      self.camYaw -= dx * 0.006;
+      self.camPitch = MBS.clamp(self.camPitch + dy * 0.0048, 0.06, 1.12);
+    }
+
+    function endLook() {
+      self._lookDragging = false;
+      self.canvas.classList.remove('is-looking');
+    }
+
+    window.addEventListener('mousedown', function (event) {
+      if (event.button !== 0 || !isLookTarget(event.target)) {
+        return;
+      }
+      event.preventDefault();
+      startLook(event.clientX, event.clientY);
+    });
+    window.addEventListener('mousemove', function (event) {
+      moveLook(event.clientX, event.clientY);
+    });
+    window.addEventListener('mouseup', endLook);
+
+    window.addEventListener(
+      'touchstart',
+      function (event) {
+        if (!isLookTarget(event.target) || event.touches.length !== 1) {
+          if (event.touches.length === 2) {
+            self._lookDragging = false;
+            var a = event.touches[0];
+            var b = event.touches[1];
+            self._pinchStartDist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+            self._pinchStartZoom = self.zoom;
+          }
+          return;
+        }
+        startLook(event.touches[0].clientX, event.touches[0].clientY);
+      },
+      { passive: true },
+    );
+    window.addEventListener(
+      'touchmove',
+      function (event) {
+        if (event.touches.length >= 2) {
+          var a = event.touches[0];
+          var b = event.touches[1];
+          var dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+          if (self._pinchStartDist > 8 && dist > 8) {
+            self.zoom = MBS.clamp(self._pinchStartZoom * (self._pinchStartDist / dist), 0.62, 1.7);
+          }
+          return;
+        }
+        if (event.touches.length === 1) {
+          moveLook(event.touches[0].clientX, event.touches[0].clientY);
+        }
+      },
+      { passive: true },
+    );
+    window.addEventListener('touchend', function (event) {
+      if (event.touches.length === 0) {
+        endLook();
+      }
+    });
+  };
+
+  Game.prototype.startHidden = function () {
+    return this.ui.startScreen.classList.contains('is-hidden');
   };
 
   Game.prototype._loop = function () {
@@ -282,11 +398,9 @@
     this.site.deepenPit();
     this.ui.showCount(result.count);
     this.ui.setHint(this.tasks.hint);
+    this.ui.speakCount(result.count);
     if (result.completed) {
-      this.ui.speak(this.tasks.hint);
       this._completeTask(1, this.tasks.level.rewardDigTitle, this.tasks.level.rewardDigText, 'load');
-    } else {
-      this.ui.speakCount(result.count);
     }
   };
 
@@ -312,13 +426,12 @@
 
     this.ui.showCount(result.count);
     this.ui.setHint(this.tasks.hint);
+    this.ui.speakCount(result.count);
     if (result.completed) {
-      this.ui.speak(this.tasks.level.voiceHaul);
+      this.ui.speak(this.tasks.level.voiceHaul, { queue: true });
       this.site.showDumpMarker();
       this.ui.setAction('⬇️', 'ВЫГРУЗИТЬ');
       this.wasNearAction = false;
-    } else {
-      this.ui.speakCount(result.count);
     }
   };
 
@@ -367,7 +480,7 @@
       self.progress.completedLevels = levels;
       MBS.saveProgress(self.progress);
       self.ui.showReward(self.rewards.stars, title, text);
-    }, 850);
+    }, 1200);
   };
 
   Game.prototype._beginLoadPhase = function () {
@@ -423,11 +536,9 @@
     this.site.pourNextSection();
     this.ui.showCount(result.count);
     this.ui.setHint(this.tasks.hint);
+    this.ui.speakCount(result.count);
     if (result.completed) {
-      this.ui.speak(this.tasks.hint);
       this._completeTask(3, this.tasks.level.rewardPourTitle, this.tasks.level.rewardPourText, 'walls');
-    } else {
-      this.ui.speakCount(result.count);
     }
   };
 
@@ -441,6 +552,7 @@
     this.wasNearAction = false;
     this.idleTime = 0;
     this.site.setWallMode();
+    this._focusOnHouse();
     this.ui.setAction('🧱', 'УСТАНОВИТЬ');
     this.ui.setHint(this.tasks.level.hintWalls);
     this.ui.speak(this.tasks.level.voiceWalls);
@@ -480,11 +592,9 @@
     this.site.placeNextWall();
     this.ui.showCount(result.count);
     this.ui.setHint(this.tasks.hint);
+    this.ui.speakCount(result.count);
     if (result.completed) {
-      this.ui.speak(this.tasks.hint);
       this._completeTask(4, this.tasks.level.rewardWallsTitle, this.tasks.level.rewardWallsText, 'finish');
-    } else {
-      this.ui.speakCount(result.count);
     }
   };
 
@@ -496,6 +606,7 @@
     this.wasNearAction = false;
     this.idleTime = 0;
     this.site.setFinishMode();
+    this._focusOnHouse();
     this.ui.setAction('🏠', 'ПОСТАВИТЬ');
     this.ui.setHint(this.tasks.level.hintFinish);
     this.ui.speak(this.tasks.level.voiceFinish);
@@ -535,11 +646,9 @@
     this.site.placeNextHousePart();
     this.ui.showCount(result.count);
     this.ui.setHint(this.tasks.hint);
+    this.ui.speakCount(result.count);
     if (result.completed) {
-      this.ui.speak(this.tasks.hint);
       this._completeTask(5, this.tasks.level.rewardFinishTitle, this.tasks.level.rewardFinishText, 'free');
-    } else {
-      this.ui.speakCount(result.count);
     }
   };
 
@@ -670,18 +779,53 @@
     this.audio.update(dt, power, kind, busy);
   };
 
+  Game.prototype._focusOnHouse = function () {
+    this._cameraFocus = 'house';
+    this.camYaw = 0.9;
+    this.camPitch = 0.22;
+    this.zoom = 0.92;
+  };
+
+  Game.prototype._beginFreeRoam = function () {
+    this._cameraFocus = 'vehicle';
+    this.camPitch = 0.24;
+    this.ui.setHint(this.tasks.level.hintFree);
+    this.ui.speak(this.tasks.level.voiceFree);
+    this.ui.setAction('👋', 'ПРИВЕТ');
+    this.ui.showVehicleBar('crane');
+  };
+
+  Game.prototype._setActiveVehicle = function (name) {
+    if (name === 'excavator') {
+      this.activeVehicle = this.excavator;
+    } else if (name === 'dumpTruck') {
+      this.activeVehicle = this.dumpTruck;
+    } else if (name === 'mixer') {
+      this.activeVehicle = this.mixer;
+    } else {
+      this.activeVehicle = this.crane;
+    }
+    this.ui.setVehicleActive(name);
+    this.idleTime = 0;
+  };
+
   Game.prototype._updateCamera = function (dt) {
     var vehicle = this.activeVehicle;
-    var yaw = vehicle.group.rotation.y;
-    var offset = new THREE.Vector3(0, 15, 17).multiplyScalar(this.zoom);
+    var focus = new THREE.Vector3();
+    if (this._cameraFocus === 'house') {
+      focus.set(0, 1.85, 1.6);
+    } else {
+      focus.copy(vehicle.position);
+      focus.y += 1.35;
+    }
+    var yaw = (this._cameraFocus === 'house' ? 0 : vehicle.group.rotation.y) + this.camYaw;
+    var dist = this.camDistance * this.zoom;
+    var offset = new THREE.Vector3(0, Math.sin(this.camPitch) * dist, Math.cos(this.camPitch) * dist);
     offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-    var desired = vehicle.position.clone().add(offset);
-    var follow = 1 - Math.exp(-3.2 * dt);
+    var desired = focus.clone().add(offset);
+    var follow = 1 - Math.exp(-3.4 * dt);
     this.camera.position.lerp(desired, follow);
-
-    var look = vehicle.position.clone();
-    look.y += 1.2;
-    this.lookTarget.lerp(look, 1 - Math.exp(-4.2 * dt));
+    this.lookTarget.lerp(focus, 1 - Math.exp(-4.4 * dt));
     this.camera.lookAt(this.lookTarget);
   };
 

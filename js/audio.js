@@ -24,7 +24,10 @@
     'female',
     'woman',
   ];
-  var MUSIC_NOTES = [261.63, 329.63, 392.0, 523.25, 392.0, 329.63, 293.66, 261.63];
+  var MUSIC_NOTES = [
+    261.63, 329.63, 392.0, 523.25, 392.0, 329.63, 349.23, 392.0, 440.0, 523.25, 659.25, 523.25, 392.0, 329.63, 293.66,
+    261.63,
+  ];
   var NUMBER_WORDS = ['ноль', 'один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять', 'десять'];
   var EDGE_TTS_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
   var EDGE_TTS_VOICE = 'ru-RU-SvetlanaNeural';
@@ -40,9 +43,12 @@
     this.engineFilter = null;
     this.engineOscA = null;
     this.engineOscB = null;
-    this.engineNoise = null;
+    this.engineOscC = null;
+    this.engineNoiseGain = null;
+    this._engineKind = '';
     this.musicTimer = 0;
     this.musicNote = 0;
+    this.birdTimer = 1.6;
     this.voice = null;
     this.speaking = false;
     this.onChange = null;
@@ -73,7 +79,7 @@
       this.musicGain = this.ctx.createGain();
       this.engineGain = this.ctx.createGain();
       this.sfxGain.gain.value = 0.7;
-      this.musicGain.gain.value = 0.07;
+      this.musicGain.gain.value = 0.11;
       this.engineGain.gain.value = 0;
       this.sfxGain.connect(this.master);
       this.musicGain.connect(this.master);
@@ -143,6 +149,7 @@
     }
     this._updateEngine(enginePower, vehicleKind, busy);
     this._updateMusic(dt);
+    this._updateBirds(dt);
   };
 
   GameAudio.prototype.speak = function (text, options) {
@@ -155,7 +162,7 @@
     if (options.throttleMs && now - this._lastSpeakAt < options.throttleMs) {
       return;
     }
-    if (this.speaking && options.priority === 'low') {
+    if (this.speaking && options.priority === 'low' && !options.queue) {
       return;
     }
 
@@ -164,9 +171,16 @@
       this.voice = this._pickFemaleVoice();
     }
 
+    var phrases = this._splitPhrases(this._friendlySpeech(text));
+    if (options.queue && this.speaking) {
+      this._speechQueue = this._speechQueue.concat(phrases);
+      this._lastSpeakAt = now;
+      return;
+    }
+
     this._stopSpeech();
     this._speechToken += 1;
-    this._speechQueue = this._splitPhrases(this._friendlySpeech(text));
+    this._speechQueue = phrases;
     this.speaking = true;
     this._lastSpeakAt = now;
     this._duckMusic(true);
@@ -688,7 +702,7 @@
     if (!this.musicGain || !this.ctx) {
       return;
     }
-    this.musicGain.gain.setTargetAtTime(duck ? 0.02 : 0.07, this.ctx.currentTime, 0.12);
+    this.musicGain.gain.setTargetAtTime(duck ? 0.035 : 0.11, this.ctx.currentTime, 0.12);
   };
 
   GameAudio.prototype._notify = function () {
@@ -761,17 +775,28 @@
     this.engineOscA.type = 'sawtooth';
     this.engineOscA.frequency.value = 72;
     var oscGainA = ctx.createGain();
-    oscGainA.gain.value = 0.18;
+    oscGainA.gain.value = 0.16;
     this.engineOscA.connect(oscGainA);
     oscGainA.connect(this.engineFilter);
+    this.engineGainA = oscGainA;
 
     this.engineOscB = ctx.createOscillator();
     this.engineOscB.type = 'triangle';
     this.engineOscB.frequency.value = 96;
     var oscGainB = ctx.createGain();
-    oscGainB.gain.value = 0.12;
+    oscGainB.gain.value = 0.1;
     this.engineOscB.connect(oscGainB);
     oscGainB.connect(this.engineFilter);
+    this.engineGainB = oscGainB;
+
+    this.engineOscC = ctx.createOscillator();
+    this.engineOscC.type = 'square';
+    this.engineOscC.frequency.value = 48;
+    var oscGainC = ctx.createGain();
+    oscGainC.gain.value = 0.04;
+    this.engineOscC.connect(oscGainC);
+    oscGainC.connect(this.engineFilter);
+    this.engineGainC = oscGainC;
 
     var noise = ctx.createBufferSource();
     var buffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
@@ -785,42 +810,100 @@
     noiseGain.gain.value = 0.04;
     noise.connect(noiseGain);
     noiseGain.connect(this.engineFilter);
+    this.engineNoiseGain = noiseGain;
 
     this.engineOscA.start();
     this.engineOscB.start();
+    this.engineOscC.start();
     noise.start();
     this.engineNoise = noise;
   };
 
   GameAudio.prototype._updateEngine = function (power, kind, busy) {
     var now = this.ctx.currentTime;
-    var base = 70;
-    if (kind === 'dumpTruck') {
-      base = 88;
-    } else if (kind === 'mixer') {
-      base = 78;
-    } else if (kind === 'crane') {
-      base = 62;
-    }
     var moving = Math.max(0, Math.min(1, power));
-    var extra = busy ? 0.18 : 0;
-    var target = moving > 0.08 || busy ? 0.09 + moving * 0.16 + extra : 0;
+    var extra = busy ? 0.16 : 0;
+    var target = moving > 0.08 || busy ? 0.08 + moving * 0.18 + extra : 0;
     this.engineGain.gain.setTargetAtTime(target, now, 0.08);
-    this.engineOscA.frequency.setTargetAtTime(base + moving * 28, now, 0.08);
-    this.engineOscB.frequency.setTargetAtTime(base * 1.35 + moving * 36, now, 0.08);
-    this.engineFilter.frequency.setTargetAtTime(240 + moving * 180, now, 0.1);
+
+    var base = 62;
+    var high = 90;
+    var whine = 140;
+    var filter = 240;
+    var noise = 0.035;
+    if (kind === 'dumpTruck') {
+      base = 38;
+      high = 56;
+      whine = 76;
+      filter = 170;
+      noise = 0.08;
+    } else if (kind === 'mixer') {
+      base = 84;
+      high = 168;
+      whine = 252;
+      filter = 420;
+      noise = 0.03;
+    } else if (kind === 'crane') {
+      base = 118;
+      high = 240;
+      whine = 360;
+      filter = 980;
+      noise = 0.02;
+    }
+    if (kind !== this._engineKind) {
+      this._engineKind = kind;
+      if (kind === 'dumpTruck') {
+        this.engineOscA.type = 'sawtooth';
+        this.engineOscB.type = 'square';
+        this.engineOscC.type = 'sawtooth';
+      } else if (kind === 'mixer') {
+        this.engineOscA.type = 'triangle';
+        this.engineOscB.type = 'sine';
+        this.engineOscC.type = 'square';
+      } else if (kind === 'crane') {
+        this.engineOscA.type = 'sine';
+        this.engineOscB.type = 'triangle';
+        this.engineOscC.type = 'sine';
+      } else {
+        this.engineOscA.type = 'sawtooth';
+        this.engineOscB.type = 'triangle';
+        this.engineOscC.type = 'sawtooth';
+      }
+    }
+
+    this.engineOscA.frequency.setTargetAtTime(base + moving * 22, now, 0.08);
+    this.engineOscB.frequency.setTargetAtTime(high + moving * 28, now, 0.08);
+    this.engineOscC.frequency.setTargetAtTime(whine + moving * 40, now, 0.08);
+    this.engineFilter.frequency.setTargetAtTime(filter + moving * 160, now, 0.1);
+    if (this.engineNoiseGain) {
+      this.engineNoiseGain.gain.setTargetAtTime(noise + extra * 0.04, now, 0.1);
+    }
   };
 
   GameAudio.prototype._updateMusic = function (dt) {
     this.musicTimer += dt;
-    if (this.musicTimer < 1.15) {
+    if (this.musicTimer < 0.42) {
       return;
     }
     this.musicTimer = 0;
     var freq = MUSIC_NOTES[this.musicNote % MUSIC_NOTES.length];
     this.musicNote += 1;
-    this._beep(freq, 0.7, 0.045, 0, this.musicGain);
-    this._beep(freq * 1.5, 0.55, 0.02, 0.05, this.musicGain);
+    this._beep(freq, 0.38, 0.055, 0, this.musicGain);
+    this._beep(freq * 1.5, 0.3, 0.022, 0.04, this.musicGain);
+    if (this.musicNote % 4 === 0) {
+      this._beep(freq * 0.5, 0.5, 0.03, 0, this.musicGain);
+    }
+  };
+
+  GameAudio.prototype._updateBirds = function (dt) {
+    this.birdTimer -= dt;
+    if (this.birdTimer > 0) {
+      return;
+    }
+    this.birdTimer = 1.7 + Math.random() * 2.8;
+    var chirp = 1800 + Math.random() * 1400;
+    this._beep(chirp, 0.09, 0.028, 0, this.musicGain);
+    this._beep(chirp * 1.18, 0.08, 0.022, 0.08, this.musicGain);
   };
 
   GameAudio.prototype._beep = function (freq, duration, gainValue, delay, dest) {

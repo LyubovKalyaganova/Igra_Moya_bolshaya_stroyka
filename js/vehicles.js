@@ -76,8 +76,8 @@
 
     this._build();
     this._applyPose(IDLE_POSE);
-    this.group.position.set(-5.4, 0, 0);
-    this.group.rotation.y = Math.PI / 2;
+    this.group.position.set(12.5, 0, 15.5);
+    this.group.rotation.y = Math.atan2(-12.5, -15.5);
     scene.add(this.group);
   }
 

@@ -15,6 +15,8 @@
     this.rewardTitle = root.querySelector('#reward-title');
     this.rewardText = root.querySelector('#reward-text');
     this.nextButton = root.querySelector('#btn-next');
+    this.vehicleBar = root.querySelector('#vehicle-bar');
+    this.vehicleButtons = root.querySelectorAll('[data-vehicle]');
     this.muteButton = root.querySelector('#btn-mute');
     this.volDownButton = root.querySelector('#btn-vol-down');
     this.volUpButton = root.querySelector('#btn-vol-up');
@@ -24,6 +26,7 @@
     this.onDigPress = null;
     this.onDigRelease = null;
     this.onMoveChange = null;
+    this.onVehiclePick = null;
   }
 
   GameUI.prototype.bind = function () {
@@ -107,6 +110,14 @@
     this.digButton.addEventListener('pointerup', digEnd);
     this.digButton.addEventListener('pointerleave', digEnd);
     this.digButton.addEventListener('pointercancel', digEnd);
+
+    this.vehicleButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        if (self.onVehiclePick) {
+          self.onVehiclePick(button.getAttribute('data-vehicle'));
+        }
+      });
+    });
   };
 
   GameUI.prototype.refreshSoundButtons = function () {
@@ -166,7 +177,7 @@
     this.rewardText.textContent = text;
     this.rewardScreen.removeAttribute('hidden');
     this.rewardScreen.classList.add('is-visible');
-    this.speak('Ура! ' + title + ' ' + text + ' Нажми жёлтую кнопку Дальше. Ты молодец!');
+    this.speak('Ура! ' + title + ' ' + text + ' Нажми жёлтую кнопку Дальше.', { queue: true });
     if (this.audio) {
       this.audio.play('reward');
     }
@@ -175,6 +186,18 @@
   GameUI.prototype.hideReward = function () {
     this.rewardScreen.classList.remove('is-visible');
     this.rewardScreen.setAttribute('hidden', '');
+  };
+
+  GameUI.prototype.showVehicleBar = function (activeName) {
+    this.vehicleBar.removeAttribute('hidden');
+    this.vehicleBar.classList.add('is-visible');
+    this.setVehicleActive(activeName || 'crane');
+  };
+
+  GameUI.prototype.setVehicleActive = function (name) {
+    this.vehicleButtons.forEach(function (button) {
+      button.classList.toggle('is-active', button.getAttribute('data-vehicle') === name);
+    });
   };
 
   GameUI.prototype.speakCount = function (n) {

@@ -50,6 +50,11 @@ body {
 
 #game {
   touch-action: none;
+  cursor: grab;
+}
+
+#game.is-looking {
+  cursor: grabbing;
 }
 
 #hud {
@@ -181,7 +186,8 @@ body {
 }
 
 .dpad,
-#btn-dig {
+#btn-dig,
+#vehicle-bar {
   pointer-events: auto;
 }
 
@@ -262,6 +268,37 @@ body {
 
 .action-label {
   font-size: clamp(12px, 2.2vw, 18px);
+}
+
+#vehicle-bar {
+  display: none;
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + var(--pad) + var(--ctrl) * 3.35);
+  transform: translateX(-50%);
+  gap: 10px;
+  z-index: 3;
+}
+
+#vehicle-bar.is-visible {
+  display: flex;
+}
+
+.vehicle-btn {
+  width: calc(var(--ctrl) * 0.92);
+  height: calc(var(--ctrl) * 0.92);
+  border: 0;
+  border-radius: 22px;
+  background: var(--white);
+  box-shadow: var(--shadow);
+  font-size: calc(var(--ctrl) * 0.46);
+  cursor: pointer;
+}
+
+.vehicle-btn.is-active {
+  background: #fff3c4;
+  transform: translateY(-4px);
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.12);
 }
 
 #start-screen {
@@ -581,6 +618,10 @@ body {
   #count-pop {
     top: 16%;
     font-size: 64px;
+  }
+
+  #vehicle-bar {
+    bottom: calc(var(--safe-bottom) + var(--pad) + var(--ctrl) * 2.55);
   }
 }
 

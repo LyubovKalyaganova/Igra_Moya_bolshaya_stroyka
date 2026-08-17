@@ -56,6 +56,35 @@
     return cloud;
   }
 
+  function addTownHouse(parent, x, z, bodyColor, scale) {
+    scale = scale || 1;
+    var house = new THREE.Group();
+    house.position.set(x, 0, z);
+    house.rotation.y = Math.atan2(x, z) + Math.PI;
+    var body = boxMesh(2.4 * scale, 2.4 * scale, 2.2 * scale, bodyColor);
+    body.position.y = 1.2 * scale;
+    house.add(body);
+    var roof = boxMesh(2.8 * scale, 0.85 * scale, 2.5 * scale, 0xd32f2f);
+    roof.position.y = 2.55 * scale;
+    house.add(roof);
+    var win = boxMesh(0.55 * scale, 0.5 * scale, 0.08 * scale, 0x81d4fa);
+    win.position.set(-0.45 * scale, 1.35 * scale, 1.14 * scale);
+    house.add(win);
+    var winB = win.clone();
+    winB.position.x = 0.5 * scale;
+    house.add(winB);
+    parent.add(house);
+    return house;
+  }
+
+  function addBush(parent, x, z, scale) {
+    scale = scale || 1;
+    var bush = sphereMesh(0.72 * scale, 0x43a047);
+    bush.position.set(x, 0.32 * scale, z);
+    bush.scale.y = 0.55;
+    parent.add(bush);
+  }
+
   function makeDoor() {
     var group = new THREE.Group();
     var panel = boxMesh(1.42, 1.58, 0.16, 0x8d6e63);
@@ -145,6 +174,7 @@
     this._createGround();
     this._createYard();
     this._createDecor();
+    this._createHorizon();
     this._createPit();
     this._createFoundation();
     this._createWalls();
@@ -271,9 +301,6 @@
     var wall = this.walls[this.wallLevel];
     wall.visible = true;
     wall.scale.y = 0.2;
-    if (this.blockPile[this.wallLevel]) {
-      this.blockPile[this.wallLevel].visible = false;
-    }
     this.wallLevel += 1;
     return true;
   };
@@ -298,7 +325,8 @@
     }
     var part = this.houseParts[this.houseLevel];
     part.visible = true;
-    part.scale.set(1, 0.2, 1);
+    var full = part.userData.fullScale || 1;
+    part.scale.set(full, 0.2, full);
     if (this.housePile[this.houseLevel]) {
       this.housePile[this.houseLevel].visible = false;
     }
@@ -330,6 +358,16 @@
       cloud.position.x += Math.sin(time * 0.12 + index) * 0.003;
     });
 
+    this.blockPile.forEach(function (block) {
+      if (!block.visible) {
+        return;
+      }
+      var targetY = block.userData.targetY;
+      if (typeof targetY === 'number') {
+        block.position.y += (targetY - block.position.y) * 0.22;
+      }
+    });
+
     this.foundation.forEach(function (slab) {
       if (slab.visible && slab.scale.y < 1) {
         slab.scale.y = Math.min(1, slab.scale.y + 0.045);
@@ -341,9 +379,10 @@
       }
     });
     this.houseParts.forEach(function (part) {
-      if (part.visible && part.scale.y < 1) {
-        var next = Math.min(1, part.scale.y + 0.07);
-        part.scale.set(1, next, 1);
+      var full = part.userData.fullScale || 1;
+      if (part.visible && part.scale.y < full) {
+        var next = Math.min(full, part.scale.y + 0.07);
+        part.scale.set(full, next, full);
       }
     });
   };
@@ -450,7 +489,32 @@
       addCloud(this.scene, -8, 16, -12, 1.3),
       addCloud(this.scene, 10, 17, -6, 1.1),
       addCloud(this.scene, 4, 15, 14, 0.9),
+      addCloud(this.scene, -18, 18, 8, 1.4),
     );
+  };
+
+  ConstructionSite.prototype._createHorizon = function () {
+    var colors = [0xffcc80, 0x90caf9, 0xce93d8, 0xffab91, 0xa5d6a7, 0xfff59d];
+    var i;
+    for (i = 0; i < 14; i += 1) {
+      var angle = (i / 14) * Math.PI * 2 + 0.18;
+      var radius = 38 + (i % 3) * 2.5;
+      addTownHouse(
+        this.scene,
+        Math.sin(angle) * radius,
+        Math.cos(angle) * radius,
+        colors[i % colors.length],
+        1.05 + (i % 3) * 0.2,
+      );
+    }
+    for (i = 0; i < 22; i += 1) {
+      var treeAngle = (i / 22) * Math.PI * 2;
+      addTree(this.scene, Math.sin(treeAngle) * 31.5, Math.cos(treeAngle) * 31.5, 0.85 + (i % 4) * 0.2);
+    }
+    for (i = 0; i < 30; i += 1) {
+      var bushAngle = (i / 30) * Math.PI * 2;
+      addBush(this.scene, Math.sin(bushAngle) * 28.6, Math.cos(bushAngle) * 28.6, 0.85 + (i % 3) * 0.22);
+    }
   };
 
   ConstructionSite.prototype._createPit = function () {
@@ -502,12 +566,14 @@
   };
 
   ConstructionSite.prototype._createWalls = function () {
+    var wallH = 2.65;
+    var wallY = 0.43 + wallH / 2;
     var specs = [
-      { w: 6.5, h: 1.7, d: 0.42, x: 0, y: 1.28, z: -3.35, color: 0xef5350 },
-      { w: 0.42, h: 1.7, d: 6.5, x: -3.35, y: 1.28, z: 0, color: 0xffa726 },
-      { w: 0.42, h: 1.7, d: 6.5, x: 3.35, y: 1.28, z: 0, color: 0xffee58 },
-      { w: 2.35, h: 1.7, d: 0.42, x: -2.05, y: 1.28, z: 3.35, color: 0x66bb6a },
-      { w: 2.35, h: 1.7, d: 0.42, x: 2.05, y: 1.28, z: 3.35, color: 0x42a5f5 },
+      { w: 6.5, h: wallH, d: 0.42, x: 0, y: wallY, z: -3.35, color: 0xef5350 },
+      { w: 0.42, h: wallH, d: 6.5, x: -3.35, y: wallY, z: 0, color: 0xffa726 },
+      { w: 0.42, h: wallH, d: 6.5, x: 3.35, y: wallY, z: 0, color: 0xffee58 },
+      { w: 2.35, h: wallH, d: 0.42, x: -2.05, y: wallY, z: 3.35, color: 0x66bb6a },
+      { w: 2.35, h: wallH, d: 0.42, x: 2.05, y: wallY, z: 3.35, color: 0x42a5f5 },
     ];
     var self = this;
     specs.forEach(function (spec) {
@@ -522,19 +588,56 @@
     this.wallColors = [0xef5350, 0xffa726, 0xffee58, 0x66bb6a, 0x42a5f5];
     this.wallColors.forEach(function (color, index) {
       var block = boxMesh(0.85, 0.7, 0.85, color);
-      block.position.set(6.4, 0.38 + index * 0.72, -6.3);
+      var fromTop = self.wallColors.length - 1 - index;
+      var y = 0.38 + fromTop * 0.72;
+      block.position.set(6.4, y, -6.3);
+      block.userData.targetY = y;
       self.scene.add(block);
       self.blockPile.push(block);
     });
   };
 
   ConstructionSite.prototype.nextWallColor = function () {
-    return this.wallColors[this.wallLevel] || 0xff7043;
+    var top = this._topBlock();
+    return top ? top.material.color.getHex() : 0xff7043;
+  };
+
+  ConstructionSite.prototype._topBlock = function () {
+    var top = null;
+    var i;
+    for (i = 0; i < this.blockPile.length; i += 1) {
+      var block = this.blockPile[i];
+      if (block.visible && (!top || block.position.y >= top.position.y)) {
+        top = block;
+      }
+    }
+    return top;
   };
 
   ConstructionSite.prototype.hideNextBlock = function () {
-    if (this.blockPile[this.wallLevel]) {
-      this.blockPile[this.wallLevel].visible = false;
+    var top = this._topBlock();
+    if (!top) {
+      return;
+    }
+    top.visible = false;
+    this._restackBlocks();
+  };
+
+  ConstructionSite.prototype._restackBlocks = function () {
+    var remaining = [];
+    var i;
+    for (i = 0; i < this.blockPile.length; i += 1) {
+      if (this.blockPile[i].visible) {
+        remaining.push(this.blockPile[i]);
+      }
+    }
+    remaining.sort(function (a, b) {
+      return a.position.y - b.position.y;
+    });
+    for (i = 0; i < remaining.length; i += 1) {
+      var y = 0.38 + i * 0.72;
+      remaining[i].userData.targetY = y;
+      remaining[i].position.y = y;
     }
   };
 
@@ -542,34 +645,38 @@
     var door = makeDoor();
     door.position.set(0, 1.22, 3.42);
     door.visible = false;
+    door.userData.fullScale = 1;
     door.scale.set(1, 0.2, 1);
     this.scene.add(door);
     this.houseParts.push(door);
 
     var windowL = makeWindow();
-    windowL.position.set(-2.05, 1.52, 3.6);
+    windowL.position.set(-2.05, 2.22, 3.62);
+    windowL.userData.fullScale = 1.15;
+    windowL.scale.set(1.15, 0.2, 1.15);
     windowL.visible = false;
-    windowL.scale.set(1, 0.2, 1);
     this.scene.add(windowL);
     this.houseParts.push(windowL);
 
     var windowR = makeWindow();
-    windowR.position.set(2.05, 1.52, 3.6);
+    windowR.position.set(2.05, 2.22, 3.62);
+    windowR.userData.fullScale = 1.15;
+    windowR.scale.set(1.15, 0.2, 1.15);
     windowR.visible = false;
-    windowR.scale.set(1, 0.2, 1);
     this.scene.add(windowR);
     this.houseParts.push(windowR);
 
     var windowS = makeWindow();
-    windowS.position.set(-3.62, 1.52, 0.2);
+    windowS.position.set(-3.62, 2.22, 0.2);
     windowS.rotation.y = Math.PI / 2;
+    windowS.userData.fullScale = 1.15;
+    windowS.scale.set(1.15, 0.2, 1.15);
     windowS.visible = false;
-    windowS.scale.set(1, 0.2, 1);
     this.scene.add(windowS);
     this.houseParts.push(windowS);
 
     var roof = new THREE.Group();
-    roof.position.set(0, 2.72, 0);
+    roof.position.set(0, 3.58, 0);
     var roofBack = makeRoofSlope(-0.4);
     roofBack.position.set(0, 0, -1.9);
     roof.add(roofBack);
@@ -583,6 +690,7 @@
     chimneyTop.position.set(-1.8, 1.28, -0.15);
     roof.add(chimneyTop);
     roof.visible = false;
+    roof.userData.fullScale = 1;
     roof.scale.set(1, 0.2, 1);
     this.scene.add(roof);
     this.houseParts.push(roof);
