@@ -310,7 +310,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: calc(var(--safe-top) + 12px) calc(var(--safe-right) + 12px) calc(var(--safe-bottom) + 12px) calc(var(--safe-left) + 12px);
-  background: linear-gradient(180deg, rgba(143, 214, 242, 0.2), rgba(255, 193, 7, 0.18));
+  background: #8fd6f2;
 }
 
 #start-screen.is-hidden {
@@ -326,7 +326,7 @@ body {
   justify-content: center;
   padding: calc(var(--safe-top) + 12px) calc(var(--safe-right) + 12px) calc(var(--safe-bottom) + 12px)
     calc(var(--safe-left) + 12px);
-  background: linear-gradient(180deg, rgba(143, 214, 242, 0.2), rgba(255, 193, 7, 0.18));
+  background: #8fd6f2;
 }
 
 #boot-error[hidden] {

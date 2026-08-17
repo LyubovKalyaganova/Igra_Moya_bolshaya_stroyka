@@ -9,21 +9,15 @@
     <title>Моя большая стройка 3D</title>
     <script>
       (function () {
-        var path = location.pathname;
+        var path = location.pathname || '';
         if (path.length > 1 && path.charAt(path.length - 1) !== '/' && path.indexOf('.') === -1) {
-          location.replace(path + '/' + location.search + location.hash);
+          var base = document.createElement('base');
+          base.href = path + '/';
+          document.head.appendChild(base);
         }
       })();
     </script>
     <link rel="stylesheet" href="css/style.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap"
-      rel="stylesheet"
-      media="print"
-      onload="this.media='all'"
-    />
   </head>
   <body>
     <div id="app">
@@ -97,19 +91,6 @@
       </div>
     </div>
 
-    <script src="js/vendor/three.min.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/math.js"></script>
-    <script src="js/levels.js"></script>
-    <script src="js/storage.js"></script>
-    <script src="js/rewards.js"></script>
-    <script src="js/tasks.js"></script>
-    <script src="js/player.js"></script>
-    <script src="js/audio.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/world.js"></script>
-    <script src="js/vehicles.js"></script>
-    <script src="js/game.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/boot.js"></script>
   </body>
 </html>

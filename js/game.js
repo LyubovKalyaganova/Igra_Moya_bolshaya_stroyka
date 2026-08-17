@@ -70,23 +70,36 @@
   };
 
   Game.prototype._createRenderer = function () {
-    var mobile = MBS.isMobile();
-    this.renderer = new THREE.WebGLRenderer({
+    var mobile = typeof MBS.isMobile === 'function' ? MBS.isMobile() : false;
+    var options = {
       canvas: this.canvas,
       antialias: !mobile,
       alpha: false,
       powerPreference: mobile ? 'low-power' : 'high-performance',
       failIfMajorPerformanceCaveat: false,
-    });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mobile ? 1.25 : 2));
+    };
+    try {
+      this.renderer = new THREE.WebGLRenderer(options);
+    } catch (err) {
+      this.renderer = new THREE.WebGLRenderer({
+        canvas: this.canvas,
+        antialias: false,
+        alpha: false,
+      });
+    }
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mobile ? 1.15 : 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
     this.renderer.shadowMap.enabled = !mobile;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.08;
+    if (THREE.SRGBColorSpace) {
+      this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    }
     if (mobile) {
+      this.renderer.toneMapping = THREE.NoToneMapping;
       this.renderer.shadowMap.enabled = false;
+    } else {
+      this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      this.renderer.toneMappingExposure = 1.08;
     }
   };
 

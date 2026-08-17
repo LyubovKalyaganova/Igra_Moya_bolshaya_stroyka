@@ -6,7 +6,11 @@
 
 ## Как запустить
 
-Откройте файл `index.html` в браузере Chrome, Edge или Яндекс Браузере.
+На компьютере откройте файл `index.html` в Chrome, Edge или Яндекс Браузере.
+
+На телефоне лучше открывать в **Chrome или Safari**, не из Telegram. Если GitHub не открывается, используйте зеркало:
+
+https://cdn.jsdelivr.net/gh/LyubovKalyaganova/Igra_Moya_bolshaya_stroyka@main/index.html
 
 Для работы нужен интернет только при первом запуске, если библиотека Three.js ещё не сохранена в папке `js/vendor`.
 
