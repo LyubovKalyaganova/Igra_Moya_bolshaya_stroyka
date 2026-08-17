@@ -25,11 +25,10 @@
     'female',
     'woman',
   ];
-  var POP_MELODY = [
-    659.25, 783.99, 987.77, 783.99, 1046.5, 987.77, 783.99, 0, 659.25, 698.46, 783.99, 880.0, 783.99, 659.25, 587.33, 0,
-    523.25, 659.25, 783.99, 0, 880.0, 783.99, 659.25, 523.25, 698.46, 783.99, 880.0, 1046.5, 880.0, 783.99, 659.25, 587.33,
+  var EDM_LEAD = [
+    523.25, 0, 659.25, 783.99, 0, 880.0, 783.99, 0, 659.25, 0, 523.25, 659.25, 698.46, 0, 783.99, 659.25,
   ];
-  var POP_BASS = [130.81, 196.0, 220.0, 174.61, 130.81, 196.0, 146.83, 174.61];
+  var EDM_BASS = [130.81, 0, 0, 130.81, 196.0, 0, 164.81, 0, 146.83, 0, 130.81, 0, 174.61, 0, 196.0, 174.61];
   var NUMBER_WORDS = ['ноль', 'один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять', 'десять'];
   var EDGE_TTS_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
   var EDGE_TTS_VOICE = 'ru-RU-DariyaNeural';
@@ -60,6 +59,9 @@
     this._speechAudio = null;
     this._speechSocket = null;
     this._cloudEngine = null;
+    this._skipYandex = false;
+    this._skipEdge = false;
+    this._skipGoogle = false;
 
     var self = this;
     if (window.speechSynthesis) {
@@ -214,35 +216,31 @@
   };
 
   GameAudio.prototype._splitPhrases = function (text) {
-    var parts = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
+    var spoken = String(text).replace(/\s+/g, ' ').trim();
+    if (spoken.length <= 180) {
+      return [spoken];
+    }
+    var parts = spoken.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [spoken];
     var phrases = [];
+    var buf = '';
     var i;
     for (i = 0; i < parts.length; i += 1) {
       var part = parts[i].trim();
       if (!part) {
         continue;
       }
-      if (part.length <= 140) {
-        phrases.push(part);
+      var next = buf ? buf + ' ' + part : part;
+      if (next.length > 180 && buf) {
+        phrases.push(buf);
+        buf = part;
       } else {
-        var chunks = part.split(/,\s+/);
-        var buf = '';
-        var c;
-        for (c = 0; c < chunks.length; c += 1) {
-          var next = buf ? buf + ', ' + chunks[c] : chunks[c];
-          if (next.length > 140 && buf) {
-            phrases.push(buf);
-            buf = chunks[c];
-          } else {
-            buf = next;
-          }
-        }
-        if (buf) {
-          phrases.push(buf);
-        }
+        buf = next;
       }
     }
-    return phrases.length ? phrases : [text];
+    if (buf) {
+      phrases.push(buf);
+    }
+    return phrases.length ? phrases : [spoken];
   };
 
   GameAudio.prototype._stopSpeech = function () {
@@ -312,16 +310,25 @@
     }
 
     function useGoogle() {
+      if (self._skipGoogle) {
+        useSystem();
+        return;
+      }
       self._speakGoogle(phrase, token, excited, function (okGoogle) {
         if (okGoogle || token !== self._speechToken) {
           return;
         }
+        self._skipGoogle = true;
         self._cloudEngine = null;
         useSystem();
       });
     }
 
     function useEdge() {
+      if (self._skipEdge) {
+        useGoogle();
+        return;
+      }
       self._speakEdge(phrase, token, excited, function (ok) {
         if (token !== self._speechToken) {
           return;
@@ -330,19 +337,20 @@
           self._cloudEngine = 'edge';
           return;
         }
+        self._skipEdge = true;
         useGoogle();
       });
     }
 
-    if (this._cloudEngine === 'google') {
+    if (this._cloudEngine === 'google' && !this._skipGoogle) {
       useGoogle();
       return;
     }
-    if (this._cloudEngine === 'edge') {
+    if (this._cloudEngine === 'edge' && !this._skipEdge) {
       useEdge();
       return;
     }
-    if (this._cloudEngine === 'yandex') {
+    if (this._cloudEngine === 'yandex' && !this._skipYandex) {
       this._speakYandex(phrase, token, excited, function (ok) {
         if (token !== self._speechToken) {
           return;
@@ -350,22 +358,14 @@
         if (ok) {
           return;
         }
+        self._skipYandex = true;
         self._cloudEngine = null;
         useEdge();
       });
       return;
     }
 
-    this._speakYandex(phrase, token, excited, function (ok) {
-      if (token !== self._speechToken) {
-        return;
-      }
-      if (ok) {
-        self._cloudEngine = 'yandex';
-        return;
-      }
-      useEdge();
-    });
+    useEdge();
   };
 
   GameAudio.prototype._playSpeechAudio = function (src, token, excited, onStart, onFail, timeoutMs) {
@@ -410,9 +410,7 @@
         return;
       }
       window.clearTimeout(timer);
-      window.setTimeout(function () {
-        self._speakNext(token);
-      }, excited ? 70 : 110);
+      self._speakNext(token);
     };
     audio.onerror = function () {
       if (failed || started || token !== self._speechToken) {
@@ -461,7 +459,7 @@
       function () {
         done(false);
       },
-      3500
+      900
     );
   };
 
@@ -478,7 +476,8 @@
       },
       function () {
         done(false);
-      }
+      },
+      2500
     );
   };
 
@@ -572,7 +571,7 @@
         done(false);
       }
 
-      var timer = window.setTimeout(fail, 8000);
+      var timer = window.setTimeout(fail, 3500);
 
       socket.onerror = fail;
       socket.onopen = function () {
@@ -588,8 +587,8 @@
           stamp +
           '\r\nContent-Type: application/json; charset=utf-8\r\n\r\n' +
           '{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-96kbitrate-mono-mp3"}}}}';
-        var rate = excited ? '+12%' : '+8%';
-        var pitch = excited ? '+8%' : '+5%';
+        var rate = excited ? '+18%' : '+14%';
+        var pitch = excited ? '+6%' : '+4%';
         var ssml =
           "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='https://www.w3.org/2001/mstts' xml:lang='ru-RU'>" +
           "<voice name='" +
@@ -687,7 +686,7 @@
     var utterance = new SpeechSynthesisUtterance(phrase);
     var raspy = this._isRaspyVoice(this.voice);
     utterance.lang = SPEECH_LANG;
-    utterance.rate = raspy ? 1.0 : excited ? 1.1 : 1.06;
+    utterance.rate = raspy ? 1.08 : excited ? 1.18 : 1.14;
     utterance.pitch = raspy ? 1.06 : excited ? 1.22 : 1.16;
     utterance.volume = this.volume;
     if (this.voice) {
@@ -696,9 +695,7 @@
 
     var self = this;
     utterance.onend = function () {
-      window.setTimeout(function () {
-        self._speakNext(token);
-      }, excited ? 70 : 110);
+      self._speakNext(token);
     };
     utterance.onerror = function () {
       if (token !== self._speechToken) {
@@ -942,28 +939,30 @@
 
   GameAudio.prototype._updateMusic = function (dt) {
     this.musicTimer += dt;
-    if (this.musicTimer < 0.18) {
+    if (this.musicTimer < 0.117) {
       return;
     }
     this.musicTimer = 0;
-    var step = this.musicStep % 32;
+    var step = this.musicStep % 16;
     this.musicStep += 1;
-    var melody = POP_MELODY[step];
-    var bass = POP_BASS[Math.floor(step / 4) % POP_BASS.length];
-    if (bass) {
-      this._beep(bass, 0.28, 0.11, 0, this.musicGain, 'sine');
-      this._beep(bass * 2, 0.16, 0.04, 0, this.musicGain, 'triangle');
-    }
-    if (melody) {
-      this._beep(melody, 0.2, 0.16, 0, this.musicGain, 'triangle');
-      this._beep(melody * 1.5, 0.12, 0.05, 0.03, this.musicGain, 'sine');
-    }
-    this._noiseBurst(0.045, 0.04, 7200, this.musicGain);
-    if (step % 8 === 4) {
-      this._noiseBurst(0.09, 0.07, 1900, this.musicGain);
-    }
+    var lead = EDM_LEAD[step];
+    var bass = EDM_BASS[step];
     if (step % 4 === 0) {
-      this._beep(98, 0.12, 0.08, 0, this.musicGain, 'sine');
+      this._beep(58, 0.14, 0.16, 0, this.musicGain, 'sine');
+    }
+    if (step === 4 || step === 12) {
+      this._noiseBurst(0.08, 0.06, 1800, this.musicGain);
+    }
+    if (step % 2 === 1) {
+      this._noiseBurst(0.03, 0.028, 9000, this.musicGain);
+    }
+    if (bass) {
+      this._beep(bass, 0.2, 0.12, 0, this.musicGain, 'sine');
+      this._beep(bass * 2, 0.12, 0.035, 0, this.musicGain, 'triangle');
+    }
+    if (lead) {
+      this._beep(lead, 0.16, 0.1, 0, this.musicGain, 'sawtooth');
+      this._beep(lead * 2, 0.1, 0.03, 0.04, this.musicGain, 'sine');
     }
   };
 
