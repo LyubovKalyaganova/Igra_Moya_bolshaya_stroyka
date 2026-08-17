@@ -70,17 +70,24 @@
   };
 
   Game.prototype._createRenderer = function () {
+    var mobile = MBS.isMobile();
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
-      antialias: true,
+      antialias: !mobile,
+      alpha: false,
+      powerPreference: mobile ? 'low-power' : 'high-performance',
+      failIfMajorPerformanceCaveat: false,
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mobile ? 1.25 : 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
-    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.enabled = !mobile;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.08;
+    if (mobile) {
+      this.renderer.shadowMap.enabled = false;
+    }
   };
 
   Game.prototype._createScene = function () {
@@ -103,8 +110,8 @@
 
     var sun = new THREE.DirectionalLight(0xfff3d0, 1.35);
     sun.position.set(22, 32, 14);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    sun.castShadow = !MBS.isMobile();
+    sun.shadow.mapSize.set(MBS.isMobile() ? 512 : 2048, MBS.isMobile() ? 512 : 2048);
     sun.shadow.camera.near = 2;
     sun.shadow.camera.far = 80;
     sun.shadow.camera.left = -32;

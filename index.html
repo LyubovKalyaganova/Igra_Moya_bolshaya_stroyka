@@ -2,15 +2,28 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Моя большая стройка 3D</title>
+    <script>
+      (function () {
+        var path = location.pathname;
+        if (path.length > 1 && path.charAt(path.length - 1) !== '/' && path.indexOf('.') === -1) {
+          location.replace(path + '/' + location.search + location.hash);
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="css/style.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    />
   </head>
   <body>
     <div id="app">
@@ -72,6 +85,14 @@
           <h1>МОЯ БОЛЬШАЯ СТРОЙКА</h1>
           <p class="start-sub">Управляй экскаватором и выкопай яму для дома</p>
           <button type="button" id="btn-play">🏗️ ИГРАТЬ</button>
+        </div>
+      </div>
+
+      <div id="boot-error" hidden>
+        <div class="start-card">
+          <p class="start-badge">Нужен браузер</p>
+          <h1>Открой ссылку в Chrome или Safari</h1>
+          <p class="start-sub">Если игра не появилась, выйди из Telegram или WhatsApp и открой адрес в обычном браузере. На телефоне лучше взять Wi‑Fi.</p>
         </div>
       </div>
     </div>

@@ -1,4 +1,15 @@
 (function (MBS, THREE) {
+  function isMobile() {
+    if (typeof navigator === 'undefined') {
+      return false;
+    }
+    if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')) {
+      return true;
+    }
+    return navigator.maxTouchPoints > 1 && Math.min(window.innerWidth, window.innerHeight) < 900;
+  }
+
+  MBS.isMobile = isMobile;
   function standardMaterial(color, extras) {
     extras = extras || {};
     return new THREE.MeshStandardMaterial(
@@ -14,8 +25,10 @@
   }
 
   function enableShadow(mesh) {
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
+    if (!isMobile()) {
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+    }
     return mesh;
   }
 

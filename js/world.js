@@ -556,10 +556,15 @@
   };
 
   ConstructionSite.prototype._createHorizon = function () {
+    var mobile = MBS.isMobile();
+    var houseCount = mobile ? 8 : 14;
+    var treeCount = mobile ? 10 : 22;
+    var bushCount = mobile ? 12 : 30;
+    var flowerCount = mobile ? 16 : 42;
     var colors = [0xffcc80, 0x90caf9, 0xce93d8, 0xffab91, 0xa5d6a7, 0xfff59d];
     var i;
-    for (i = 0; i < 14; i += 1) {
-      var angle = (i / 14) * Math.PI * 2 + 0.18;
+    for (i = 0; i < houseCount; i += 1) {
+      var angle = (i / houseCount) * Math.PI * 2 + 0.18;
       var radius = 38 + (i % 3) * 2.5;
       addTownHouse(
         this.scene,
@@ -569,17 +574,17 @@
         1.05 + (i % 3) * 0.2,
       );
     }
-    for (i = 0; i < 22; i += 1) {
-      var treeAngle = (i / 22) * Math.PI * 2;
+    for (i = 0; i < treeCount; i += 1) {
+      var treeAngle = (i / treeCount) * Math.PI * 2;
       addTree(this.scene, Math.sin(treeAngle) * 31.5, Math.cos(treeAngle) * 31.5, 0.85 + (i % 4) * 0.2);
     }
-    for (i = 0; i < 30; i += 1) {
-      var bushAngle = (i / 30) * Math.PI * 2;
+    for (i = 0; i < bushCount; i += 1) {
+      var bushAngle = (i / bushCount) * Math.PI * 2;
       addBush(this.scene, Math.sin(bushAngle) * 28.6, Math.cos(bushAngle) * 28.6, 0.85 + (i % 3) * 0.22);
     }
     var flowerColors = [0xff80ab, 0xfff176, 0xce93d8, 0xff8a80, 0xffffff, 0x80d8ff, 0xffab91];
-    for (i = 0; i < 42; i += 1) {
-      var flowerAngle = (i / 42) * Math.PI * 2 + 0.07;
+    for (i = 0; i < flowerCount; i += 1) {
+      var flowerAngle = (i / flowerCount) * Math.PI * 2 + 0.07;
       var flowerRadius = 24.5 + (i % 5) * 1.15;
       addFlower(
         this.scene,
