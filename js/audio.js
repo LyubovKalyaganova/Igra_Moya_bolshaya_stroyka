@@ -25,13 +25,14 @@
     'female',
     'woman',
   ];
-  var MUSIC_NOTES = [
-    261.63, 329.63, 392.0, 523.25, 392.0, 329.63, 349.23, 392.0, 440.0, 523.25, 659.25, 523.25, 392.0, 329.63, 293.66,
-    261.63,
+  var POP_MELODY = [
+    659.25, 783.99, 987.77, 783.99, 1046.5, 987.77, 783.99, 0, 659.25, 698.46, 783.99, 880.0, 783.99, 659.25, 587.33, 0,
+    523.25, 659.25, 783.99, 0, 880.0, 783.99, 659.25, 523.25, 698.46, 783.99, 880.0, 1046.5, 880.0, 783.99, 659.25, 587.33,
   ];
+  var POP_BASS = [130.81, 196.0, 220.0, 174.61, 130.81, 196.0, 146.83, 174.61];
   var NUMBER_WORDS = ['ноль', 'один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять', 'десять'];
   var EDGE_TTS_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
-  var EDGE_TTS_VOICE = 'ru-RU-DariyaNeural';
+  var EDGE_TTS_VOICE = 'ru-RU-SvetlanaNeural';
 
   function GameAudio(progress) {
     this.volume = typeof progress.soundVolume === 'number' ? progress.soundVolume : 0.8;
@@ -48,7 +49,7 @@
     this.engineNoiseGain = null;
     this._engineKind = '';
     this.musicTimer = 0;
-    this.musicNote = 0;
+    this.musicStep = 0;
     this.birdTimer = 1.6;
     this.voice = null;
     this.speaking = false;
@@ -80,7 +81,7 @@
       this.musicGain = this.ctx.createGain();
       this.engineGain = this.ctx.createGain();
       this.sfxGain.gain.value = 0.7;
-      this.musicGain.gain.value = 0.42;
+      this.musicGain.gain.value = 0.36;
       this.engineGain.gain.value = 0;
       this.sfxGain.connect(this.master);
       this.musicGain.connect(this.master);
@@ -268,12 +269,22 @@
     this._duckMusic(false);
   };
 
+  GameAudio.prototype._isRaspyVoice = function (voice) {
+    if (!voice) {
+      return true;
+    }
+    var name = (voice.name || '').toLowerCase();
+    return /irina|ирина|desktop|compact|espeak/.test(name);
+  };
+
   GameAudio.prototype._hasNaturalVoice = function () {
-    if (!this.voice) {
+    if (!this.voice || this._isRaspyVoice(this.voice)) {
       return false;
     }
     var name = (this.voice.name || '').toLowerCase();
-    return /alisa|алиса|alena|алена|yandex|jane/.test(name);
+    return /natural|neural|online|premium|enhanced|google|yandex|svetlana|dariya|daria|alisa|алиса|alena|алена/.test(
+      name,
+    );
   };
 
   GameAudio.prototype._speakNext = function (token) {
@@ -302,13 +313,27 @@
         if (okGoogle || token !== self._speechToken) {
           return;
         }
-        self._cloudEngine = 'system';
+        self._cloudEngine = null;
         self._speakSystem(phrase, token, excited);
       });
       return;
     }
-    if (this._cloudEngine === 'system') {
-      this._speakSystem(phrase, token, excited);
+    if (this._cloudEngine === 'edge') {
+      this._speakEdge(phrase, token, excited, function (ok) {
+        if (token !== self._speechToken) {
+          return;
+        }
+        if (ok) {
+          return;
+        }
+        self._cloudEngine = null;
+        self._speakGoogle(phrase, token, excited, function (okGoogle) {
+          if (okGoogle || token !== self._speechToken) {
+            return;
+          }
+          self._speakSystem(phrase, token, excited);
+        });
+      });
       return;
     }
 
@@ -328,7 +353,6 @@
           self._cloudEngine = 'google';
           return;
         }
-        self._cloudEngine = 'system';
         self._speakSystem(phrase, token, excited);
       });
     });
@@ -340,7 +364,7 @@
     audio.preload = 'auto';
     audio.referrerPolicy = 'no-referrer';
     audio.volume = Math.max(0.15, this.volume);
-    audio.playbackRate = excited ? 1.12 : 1.06;
+    audio.playbackRate = 1;
     this._speechAudio = audio;
 
     var failed = false;
@@ -415,7 +439,7 @@
   GameAudio.prototype._speakGoogle = function (phrase, token, excited, done) {
     var q = encodeURIComponent(phrase);
     var url =
-      'https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=ru&q=' + q;
+      'https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ru&q=' + q;
     this._playSpeechAudio(
       url,
       token,
@@ -519,7 +543,7 @@
         done(false);
       }
 
-      var timer = window.setTimeout(fail, 3500);
+      var timer = window.setTimeout(fail, 8000);
 
       socket.onerror = fail;
       socket.onopen = function () {
@@ -534,17 +558,14 @@
           '\r\nX-Timestamp: ' +
           stamp +
           '\r\nContent-Type: application/json; charset=utf-8\r\n\r\n' +
-          '{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}';
-        var rate = excited ? '+16%' : '+10%';
-        var pitch = excited ? '+22Hz' : '+16Hz';
+          '{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-96kbitrate-mono-mp3"}}}}';
+        var rate = excited ? '+8%' : '+4%';
         var ssml =
           "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='https://www.w3.org/2001/mstts' xml:lang='ru-RU'>" +
           "<voice name='" +
           EDGE_TTS_VOICE +
-          "'><mstts:express-as style='cheerful' styledegree='1.4'><prosody rate='" +
+          "'><mstts:express-as style='cheerful'><prosody rate='" +
           rate +
-          "' pitch='" +
-          pitch +
           "'>" +
           self._escapeXml(phrase) +
           '</prosody></mstts:express-as></voice></speak>';
@@ -632,10 +653,10 @@
     }
 
     var utterance = new SpeechSynthesisUtterance(phrase);
-    var male = this.voice && /pavel|ivan|dmitry|male/i.test(this.voice.name);
+    var raspy = this._isRaspyVoice(this.voice);
     utterance.lang = SPEECH_LANG;
-    utterance.rate = excited ? 1.14 : 1.08;
-    utterance.pitch = male ? (excited ? 1.45 : 1.35) : excited ? 1.42 : 1.32;
+    utterance.rate = raspy ? 0.98 : excited ? 1.06 : 1.02;
+    utterance.pitch = raspy ? 1.08 : excited ? 1.16 : 1.1;
     utterance.volume = this.volume;
     if (this.voice) {
       utterance.voice = this.voice;
@@ -703,7 +724,7 @@
     if (!this.musicGain || !this.ctx) {
       return;
     }
-    this.musicGain.gain.setTargetAtTime(duck ? 0.14 : 0.42, this.ctx.currentTime, 0.12);
+    this.musicGain.gain.setTargetAtTime(duck ? 0.12 : 0.36, this.ctx.currentTime, 0.12);
   };
 
   GameAudio.prototype._notify = function () {
@@ -739,7 +760,7 @@
       score += 10;
     }
     if (/desktop|compact|espeak|irina|ирина/.test(name)) {
-      score -= 40;
+      score -= 120;
     }
     if (/pavel|ivan|dmitry|male/.test(name)) {
       score -= 50;
@@ -886,16 +907,28 @@
 
   GameAudio.prototype._updateMusic = function (dt) {
     this.musicTimer += dt;
-    if (this.musicTimer < 0.42) {
+    if (this.musicTimer < 0.18) {
       return;
     }
     this.musicTimer = 0;
-    var freq = MUSIC_NOTES[this.musicNote % MUSIC_NOTES.length];
-    this.musicNote += 1;
-    this._beep(freq, 0.42, 0.2, 0, this.musicGain);
-    this._beep(freq * 1.5, 0.32, 0.08, 0.04, this.musicGain);
-    if (this.musicNote % 4 === 0) {
-      this._beep(freq * 0.5, 0.55, 0.12, 0, this.musicGain);
+    var step = this.musicStep % 32;
+    this.musicStep += 1;
+    var melody = POP_MELODY[step];
+    var bass = POP_BASS[Math.floor(step / 4) % POP_BASS.length];
+    if (bass) {
+      this._beep(bass, 0.28, 0.11, 0, this.musicGain, 'sine');
+      this._beep(bass * 2, 0.16, 0.04, 0, this.musicGain, 'triangle');
+    }
+    if (melody) {
+      this._beep(melody, 0.2, 0.16, 0, this.musicGain, 'triangle');
+      this._beep(melody * 1.5, 0.12, 0.05, 0.03, this.musicGain, 'sine');
+    }
+    this._noiseBurst(0.045, 0.04, 7200, this.musicGain);
+    if (step % 8 === 4) {
+      this._noiseBurst(0.09, 0.07, 1900, this.musicGain);
+    }
+    if (step % 4 === 0) {
+      this._beep(98, 0.12, 0.08, 0, this.musicGain, 'sine');
     }
   };
 
@@ -910,15 +943,15 @@
     this._beep(chirp * 1.18, 0.09, 0.04, 0.08, this.musicGain);
   };
 
-  GameAudio.prototype._beep = function (freq, duration, gainValue, delay, dest) {
+  GameAudio.prototype._beep = function (freq, duration, gainValue, delay, dest, type) {
     var ctx = this.ctx;
     var osc = ctx.createOscillator();
     var gain = ctx.createGain();
-    osc.type = 'sine';
+    osc.type = type || 'sine';
     osc.frequency.value = freq;
     var start = ctx.currentTime + (delay || 0);
     gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(gainValue, start + 0.03);
+    gain.gain.exponentialRampToValueAtTime(gainValue, start + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
     osc.connect(gain);
     gain.connect(dest || this.sfxGain);
@@ -947,7 +980,7 @@
     this._sweep(freq, freq * 0.45, duration, 'sine', gainValue);
   };
 
-  GameAudio.prototype._noiseBurst = function (duration, gainValue, cutoff) {
+  GameAudio.prototype._noiseBurst = function (duration, gainValue, cutoff, dest) {
     var ctx = this.ctx;
     var buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * duration), ctx.sampleRate);
     var data = buffer.getChannelData(0);
@@ -965,7 +998,7 @@
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
     src.connect(filter);
     filter.connect(gain);
-    gain.connect(this.sfxGain);
+    gain.connect(dest || this.sfxGain);
     src.start(start);
     src.stop(start + duration + 0.02);
   };

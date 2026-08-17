@@ -519,12 +519,12 @@
       [-13.2, -5.6],
       [-11.6, -8.4],
       [-14.8, 2.2],
-      [16.4, 3.5],
-      [18.2, -2.4],
+      [10.4, 3.5],
+      [18.2, -6.4],
       [-17.4, -9.2],
       [7.6, 14.8],
       [-6.8, 14.2],
-      [19.4, 8.6],
+      [22.4, 12.6],
       [-19.2, 6.4],
       [4.8, 16.5],
       [-4.2, 17.2],
@@ -533,7 +533,12 @@
       [20.2, -8.8],
     ];
     var self = this;
+    var dumpX = this.dumpTarget.x;
+    var dumpZ = this.dumpTarget.z;
     yardFlowers.forEach(function (spot, index) {
+      if (Math.hypot(spot[0] - dumpX, spot[1] - dumpZ) < 7.4) {
+        return;
+      }
       addFlower(self.scene, spot[0], spot[1], flowerColors[index % flowerColors.length], 0.85 + (index % 4) * 0.12);
     });
 

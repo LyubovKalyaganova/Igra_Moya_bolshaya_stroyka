@@ -12,20 +12,32 @@
   }
 
   function loadProgress() {
+    var progress = emptyProgress();
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
-        return emptyProgress();
+        return progress;
       }
-      return Object.assign(emptyProgress(), JSON.parse(raw));
+      var saved = JSON.parse(raw);
+      if (typeof saved.soundVolume === 'number') {
+        progress.soundVolume = saved.soundVolume;
+      }
+      progress.soundMuted = !!saved.soundMuted;
     } catch (error) {
       return emptyProgress();
     }
+    return progress;
   }
 
   function saveProgress(progress) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          soundVolume: progress.soundVolume,
+          soundMuted: !!progress.soundMuted,
+        }),
+      );
     } catch (error) {
       // localStorage может быть недоступен в приватном режиме
     }
