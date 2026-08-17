@@ -282,10 +282,11 @@
     this.site.deepenPit();
     this.ui.showCount(result.count);
     this.ui.setHint(this.tasks.hint);
-    this.ui.speak(this.tasks.hint);
-
     if (result.completed) {
+      this.ui.speak(this.tasks.hint);
       this._completeTask(1, this.tasks.level.rewardDigTitle, this.tasks.level.rewardDigText, 'load');
+    } else {
+      this.ui.speakCount(result.count);
     }
   };
 
@@ -311,12 +312,13 @@
 
     this.ui.showCount(result.count);
     this.ui.setHint(this.tasks.hint);
-    this.ui.speak(result.completed ? this.tasks.level.voiceHaul : this.tasks.hint);
-
     if (result.completed) {
+      this.ui.speak(this.tasks.level.voiceHaul);
       this.site.showDumpMarker();
       this.ui.setAction('⬇️', 'ВЫГРУЗИТЬ');
       this.wasNearAction = false;
+    } else {
+      this.ui.speakCount(result.count);
     }
   };
 
@@ -421,10 +423,11 @@
     this.site.pourNextSection();
     this.ui.showCount(result.count);
     this.ui.setHint(this.tasks.hint);
-    this.ui.speak(this.tasks.hint);
-
     if (result.completed) {
+      this.ui.speak(this.tasks.hint);
       this._completeTask(3, this.tasks.level.rewardPourTitle, this.tasks.level.rewardPourText, 'walls');
+    } else {
+      this.ui.speakCount(result.count);
     }
   };
 
@@ -477,10 +480,11 @@
     this.site.placeNextWall();
     this.ui.showCount(result.count);
     this.ui.setHint(this.tasks.hint);
-    this.ui.speak(this.tasks.hint);
-
     if (result.completed) {
+      this.ui.speak(this.tasks.hint);
       this._completeTask(4, this.tasks.level.rewardWallsTitle, this.tasks.level.rewardWallsText, 'finish');
+    } else {
+      this.ui.speakCount(result.count);
     }
   };
 
@@ -531,10 +535,11 @@
     this.site.placeNextHousePart();
     this.ui.showCount(result.count);
     this.ui.setHint(this.tasks.hint);
-    this.ui.speak(this.tasks.hint);
-
     if (result.completed) {
+      this.ui.speak(this.tasks.hint);
       this._completeTask(5, this.tasks.level.rewardFinishTitle, this.tasks.level.rewardFinishText, 'free');
+    } else {
+      this.ui.speakCount(result.count);
     }
   };
 

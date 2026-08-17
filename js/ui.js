@@ -177,6 +177,12 @@
     this.rewardScreen.setAttribute('hidden', '');
   };
 
+  GameUI.prototype.speakCount = function (n) {
+    if (this.audio) {
+      this.audio.speakCount(n);
+    }
+  };
+
   GameUI.prototype.speak = function (text, options) {
     if (this.audio) {
       this.audio.speak(text, options);

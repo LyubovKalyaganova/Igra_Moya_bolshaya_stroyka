@@ -175,14 +175,26 @@
 
   GameAudio.prototype._friendlySpeech = function (text) {
     var spoken = String(text).replace(/\s+/g, ' ').trim();
-    spoken = spoken.replace(/\d+/g, function (match) {
+    var lower = spoken.toLowerCase();
+    var countMatch = lower.match(
+      /(?:ковш|загружено|участок|блок|часть)?\s*(\d+|один|два|три|четыре|пять|шесть|семь|восемь|девять|десять)\s+из\s+(?:\d+|один|два|три|четыре|пять|шесть|семь|восемь|девять|десять)/
+    );
+    if (countMatch) {
+      var raw = countMatch[1];
+      var count = parseInt(raw, 10);
+      if (!isNaN(count)) {
+        return NUMBER_WORDS[count] || raw;
+      }
+      return raw;
+    }
+    return spoken.replace(/\d+/g, function (match) {
       var n = parseInt(match, 10);
       return NUMBER_WORDS[n] || match;
     });
-    if (/ковш|загружено|участок|блок|часть/i.test(spoken) && /из/i.test(spoken)) {
-      spoken = spoken.replace(/[.!]*$/, '') + '! Молодец, так держать!';
-    }
-    return spoken;
+  };
+
+  GameAudio.prototype.speakCount = function (n) {
+    this.speak(NUMBER_WORDS[n] || String(n));
   };
 
   GameAudio.prototype._splitPhrases = function (text) {
