@@ -166,7 +166,7 @@
     this.rewardText.textContent = text;
     this.rewardScreen.removeAttribute('hidden');
     this.rewardScreen.classList.add('is-visible');
-    this.speak(title + '! ' + text + ' Нажми жёлтую кнопку Дальше.');
+    this.speak('Ура! ' + title + ' ' + text + ' Нажми жёлтую кнопку Дальше. Ты молодец!');
     if (this.audio) {
       this.audio.play('reward');
     }
