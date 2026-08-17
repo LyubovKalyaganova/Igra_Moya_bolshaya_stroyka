@@ -32,7 +32,7 @@
   var POP_BASS = [130.81, 196.0, 220.0, 174.61, 130.81, 196.0, 146.83, 174.61];
   var NUMBER_WORDS = ['ноль', 'один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять', 'десять'];
   var EDGE_TTS_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
-  var EDGE_TTS_VOICE = 'ru-RU-SvetlanaNeural';
+  var EDGE_TTS_VOICE = 'ru-RU-DariyaNeural';
 
   function GameAudio(progress) {
     this.volume = typeof progress.soundVolume === 'number' ? progress.soundVolume : 0.8;
@@ -277,14 +277,12 @@
     return /irina|ирина|desktop|compact|espeak/.test(name);
   };
 
-  GameAudio.prototype._hasNaturalVoice = function () {
+  GameAudio.prototype._hasAliceVoice = function () {
     if (!this.voice || this._isRaspyVoice(this.voice)) {
       return false;
     }
     var name = (this.voice.name || '').toLowerCase();
-    return /natural|neural|online|premium|enhanced|google|yandex|svetlana|dariya|daria|alisa|алиса|alena|алена/.test(
-      name,
-    );
+    return /alisa|алиса|alena|алена|yandex|oksana|оксана|alyss/.test(name);
   };
 
   GameAudio.prototype._speakNext = function (token) {
@@ -299,7 +297,7 @@
 
     var phrase = this._speechQueue.shift();
     var excited = /[!]|(ура|супер|молодец|умница|здорово|давай)/i.test(phrase);
-    if (this._hasNaturalVoice()) {
+    if (this._hasAliceVoice()) {
       this._speakSystem(phrase, token, excited);
       return;
     }
@@ -308,18 +306,44 @@
 
   GameAudio.prototype._speakCloud = function (phrase, token, excited) {
     var self = this;
-    if (this._cloudEngine === 'google') {
-      this._speakGoogle(phrase, token, excited, function (okGoogle) {
+
+    function useSystem() {
+      self._speakSystem(phrase, token, excited);
+    }
+
+    function useGoogle() {
+      self._speakGoogle(phrase, token, excited, function (okGoogle) {
         if (okGoogle || token !== self._speechToken) {
           return;
         }
         self._cloudEngine = null;
-        self._speakSystem(phrase, token, excited);
+        useSystem();
       });
+    }
+
+    function useEdge() {
+      self._speakEdge(phrase, token, excited, function (ok) {
+        if (token !== self._speechToken) {
+          return;
+        }
+        if (ok) {
+          self._cloudEngine = 'edge';
+          return;
+        }
+        useGoogle();
+      });
+    }
+
+    if (this._cloudEngine === 'google') {
+      useGoogle();
       return;
     }
     if (this._cloudEngine === 'edge') {
-      this._speakEdge(phrase, token, excited, function (ok) {
+      useEdge();
+      return;
+    }
+    if (this._cloudEngine === 'yandex') {
+      this._speakYandex(phrase, token, excited, function (ok) {
         if (token !== self._speechToken) {
           return;
         }
@@ -327,38 +351,24 @@
           return;
         }
         self._cloudEngine = null;
-        self._speakGoogle(phrase, token, excited, function (okGoogle) {
-          if (okGoogle || token !== self._speechToken) {
-            return;
-          }
-          self._speakSystem(phrase, token, excited);
-        });
+        useEdge();
       });
       return;
     }
 
-    this._speakEdge(phrase, token, excited, function (ok) {
+    this._speakYandex(phrase, token, excited, function (ok) {
       if (token !== self._speechToken) {
         return;
       }
       if (ok) {
-        self._cloudEngine = 'edge';
+        self._cloudEngine = 'yandex';
         return;
       }
-      self._speakGoogle(phrase, token, excited, function (okGoogle) {
-        if (token !== self._speechToken) {
-          return;
-        }
-        if (okGoogle) {
-          self._cloudEngine = 'google';
-          return;
-        }
-        self._speakSystem(phrase, token, excited);
-      });
+      useEdge();
     });
   };
 
-  GameAudio.prototype._playSpeechAudio = function (src, token, excited, onStart, onFail) {
+  GameAudio.prototype._playSpeechAudio = function (src, token, excited, onStart, onFail, timeoutMs) {
     var self = this;
     var audio = new Audio();
     audio.preload = 'auto';
@@ -383,7 +393,7 @@
       if (onFail) {
         onFail();
       }
-    }, 6000);
+    }, timeoutMs || 6000);
 
     audio.onplaying = function () {
       if (failed || token !== self._speechToken) {
@@ -434,6 +444,25 @@
         }
       });
     }
+  };
+
+  GameAudio.prototype._speakYandex = function (phrase, token, excited, done) {
+    var q = encodeURIComponent(phrase);
+    var url =
+      'https://tts.voicetech.yandex.net/tts?format=mp3&quality=hi&platform=web&application=translate&lang=ru_RU&speaker=alyss&emotion=good&speed=1.05&text=' +
+      q;
+    this._playSpeechAudio(
+      url,
+      token,
+      excited,
+      function () {
+        done(true);
+      },
+      function () {
+        done(false);
+      },
+      3500
+    );
   };
 
   GameAudio.prototype._speakGoogle = function (phrase, token, excited, done) {
@@ -559,13 +588,16 @@
           stamp +
           '\r\nContent-Type: application/json; charset=utf-8\r\n\r\n' +
           '{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-96kbitrate-mono-mp3"}}}}';
-        var rate = excited ? '+8%' : '+4%';
+        var rate = excited ? '+12%' : '+8%';
+        var pitch = excited ? '+8%' : '+5%';
         var ssml =
           "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='https://www.w3.org/2001/mstts' xml:lang='ru-RU'>" +
           "<voice name='" +
           EDGE_TTS_VOICE +
           "'><mstts:express-as style='cheerful'><prosody rate='" +
           rate +
+          "' pitch='" +
+          pitch +
           "'>" +
           self._escapeXml(phrase) +
           '</prosody></mstts:express-as></voice></speak>';
@@ -655,8 +687,8 @@
     var utterance = new SpeechSynthesisUtterance(phrase);
     var raspy = this._isRaspyVoice(this.voice);
     utterance.lang = SPEECH_LANG;
-    utterance.rate = raspy ? 0.98 : excited ? 1.06 : 1.02;
-    utterance.pitch = raspy ? 1.08 : excited ? 1.16 : 1.1;
+    utterance.rate = raspy ? 1.0 : excited ? 1.1 : 1.06;
+    utterance.pitch = raspy ? 1.06 : excited ? 1.22 : 1.16;
     utterance.volume = this.volume;
     if (this.voice) {
       utterance.voice = this.voice;
@@ -740,13 +772,16 @@
     if (/^ru/.test(lang)) {
       score += 60;
     }
-    if (/yandex|alisa|алиса|alena|алена/.test(name)) {
+    if (/yandex|alisa|алиса|alena|алена|alyss/.test(name)) {
       score += 80;
+    }
+    if (/dariya|daria/.test(name)) {
+      score += 36;
     }
     if (/natural|neural|online|premium|enhanced|google/.test(name)) {
       score += 45;
     }
-    if (/dariya|daria|svetlana|milena|elena|елена|anna|анна|ksenia|ксения|oksana|jane/.test(name)) {
+    if (/svetlana|milena|elena|елена|anna|анна|ksenia|ксения|oksana|jane/.test(name)) {
       score += 28;
     }
     var n;
