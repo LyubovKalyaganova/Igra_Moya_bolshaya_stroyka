@@ -321,20 +321,20 @@
       if (this.input.consumeDigPress()) {
         this._tryAction();
       }
-      this.activeVehicle.update(dt, this.input, this.site.bounds);
+      this.activeVehicle.update(dt, this.input, this.site.bounds, this._obstaclesFor(this.activeVehicle));
       this._updateCoach(dt);
     } else {
       if (this.excavator.digging) {
-        this.excavator.update(dt, this.idleInput, this.site.bounds);
+        this.excavator.update(dt, this.idleInput, this.site.bounds, this._obstaclesFor(this.excavator));
       }
       if (this.dumpTruck.busy) {
-        this.dumpTruck.update(dt, this.idleInput, this.site.bounds);
+        this.dumpTruck.update(dt, this.idleInput, this.site.bounds, this._obstaclesFor(this.dumpTruck));
       }
       if (this.mixer.busy) {
-        this.mixer.update(dt, this.idleInput, this.site.bounds);
+        this.mixer.update(dt, this.idleInput, this.site.bounds, this._obstaclesFor(this.mixer));
       }
       if (this.crane.busy) {
-        this.crane.update(dt, this.idleInput, this.site.bounds);
+        this.crane.update(dt, this.idleInput, this.site.bounds, this._obstaclesFor(this.crane));
       }
     }
 
@@ -565,15 +565,19 @@
       return;
     }
 
+    this.crane.setCarriedPart('block');
+    this.crane.setCarriedColor(this.site.nextWallColor());
+    this.crane.pickX = 6.4;
+    this.crane.pickZ = -6.3;
+    this.crane.placeX = 0;
+    this.crane.placeZ = 0;
+
     if (!this.crane.tryPlace()) {
       return;
     }
 
     this.audio.play('crane');
     this.idleTime = 0;
-
-    this.crane.setCarriedPart('block');
-    this.crane.setCarriedColor(this.site.nextWallColor());
     var self = this;
     this.crane.onPicked = function () {
       self.site.hideNextBlock();
@@ -619,15 +623,19 @@
       return;
     }
 
+    this.crane.setCarriedPart(this.site.nextHouseKind());
+    this.crane.setCarriedColor(this.site.nextHouseColor());
+    this.crane.pickX = 6.6;
+    this.crane.pickZ = 5.8;
+    this.crane.placeX = 0;
+    this.crane.placeZ = 0;
+
     if (!this.crane.tryPlace()) {
       return;
     }
 
     this.audio.play('crane');
     this.idleTime = 0;
-
-    this.crane.setCarriedPart(this.site.nextHouseKind());
-    this.crane.setCarriedColor(this.site.nextHouseColor());
     var self = this;
     this.crane.onPicked = function () {
       self.site.hideNextHousePart();
@@ -667,6 +675,34 @@
   Game.prototype._isNearDumpZone = function () {
     var pos = this.dumpTruck.position;
     return this.site.isInDumpZone(pos.x, pos.z);
+  };
+
+  Game.prototype._obstaclesFor = function (mover) {
+    var obstacles = [];
+    var vehicles = [this.excavator, this.dumpTruck, this.mixer, this.crane];
+    var i;
+    for (i = 0; i < vehicles.length; i += 1) {
+      var other = vehicles[i];
+      if (other === mover) {
+        continue;
+      }
+      obstacles.push({
+        kind: 'circle',
+        x: other.group.position.x,
+        z: other.group.position.z,
+        radius: other.radius || 1.8,
+      });
+    }
+    if (this.site.wallLevel > 0 || this.site.houseLevel > 0) {
+      obstacles.push({
+        kind: 'box',
+        minX: -3.85,
+        maxX: 3.85,
+        minZ: -3.85,
+        maxZ: 3.85,
+      });
+    }
+    return obstacles;
   };
 
   Game.prototype._updateActionButton = function () {

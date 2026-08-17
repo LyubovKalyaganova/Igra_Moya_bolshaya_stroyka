@@ -77,6 +77,31 @@
     return house;
   }
 
+  function addFlower(parent, x, z, color, scale) {
+    scale = scale || 1;
+    var stem = cylinderMesh(0.028 * scale, 0.034 * scale, 0.32 * scale, 0x66bb6a, {}, 6);
+    stem.position.set(x, 0.16 * scale, z);
+    stem.castShadow = false;
+    parent.add(stem);
+
+    var petalA = sphereMesh(0.11 * scale, color);
+    petalA.position.set(x, 0.34 * scale, z);
+    petalA.scale.set(1.15, 0.42, 1.15);
+    petalA.castShadow = false;
+    parent.add(petalA);
+
+    var petalB = sphereMesh(0.08 * scale, color);
+    petalB.position.set(x + 0.07 * scale, 0.33 * scale, z + 0.04 * scale);
+    petalB.scale.y = 0.4;
+    petalB.castShadow = false;
+    parent.add(petalB);
+
+    var center = sphereMesh(0.045 * scale, 0xffeb3b);
+    center.position.set(x, 0.36 * scale, z);
+    center.castShadow = false;
+    parent.add(center);
+  }
+
   function addBush(parent, x, z, scale) {
     scale = scale || 1;
     var bush = sphereMesh(0.72 * scale, 0x43a047);
@@ -480,6 +505,38 @@
     addTree(this.scene, 13, 11, 1);
     addTree(this.scene, -10, 16, 0.85);
 
+    var flowerColors = [0xff80ab, 0xfff176, 0xce93d8, 0xff8a80, 0xffffff, 0x80d8ff];
+    var yardFlowers = [
+      [9.2, 12.4],
+      [10.8, 10.1],
+      [8.4, 8.6],
+      [-9.5, 11.2],
+      [-11.4, 8.8],
+      [-8.2, 13.6],
+      [12.6, -5.4],
+      [14.2, -7.8],
+      [11.1, -10.2],
+      [-13.2, -5.6],
+      [-11.6, -8.4],
+      [-14.8, 2.2],
+      [16.4, 3.5],
+      [18.2, -2.4],
+      [-17.4, -9.2],
+      [7.6, 14.8],
+      [-6.8, 14.2],
+      [19.4, 8.6],
+      [-19.2, 6.4],
+      [4.8, 16.5],
+      [-4.2, 17.2],
+      [15.8, 12.4],
+      [-15.6, 12.8],
+      [20.2, -8.8],
+    ];
+    var self = this;
+    yardFlowers.forEach(function (spot, index) {
+      addFlower(self.scene, spot[0], spot[1], flowerColors[index % flowerColors.length], 0.85 + (index % 4) * 0.12);
+    });
+
     var sun = sphereMesh(2.4, 0xffe082, { emissive: 0xffcc66, emissiveIntensity: 0.65, roughness: 1 });
     sun.position.set(-22, 22, -18);
     sun.castShadow = false;
@@ -514,6 +571,18 @@
     for (i = 0; i < 30; i += 1) {
       var bushAngle = (i / 30) * Math.PI * 2;
       addBush(this.scene, Math.sin(bushAngle) * 28.6, Math.cos(bushAngle) * 28.6, 0.85 + (i % 3) * 0.22);
+    }
+    var flowerColors = [0xff80ab, 0xfff176, 0xce93d8, 0xff8a80, 0xffffff, 0x80d8ff, 0xffab91];
+    for (i = 0; i < 42; i += 1) {
+      var flowerAngle = (i / 42) * Math.PI * 2 + 0.07;
+      var flowerRadius = 24.5 + (i % 5) * 1.15;
+      addFlower(
+        this.scene,
+        Math.sin(flowerAngle) * flowerRadius,
+        Math.cos(flowerAngle) * flowerRadius,
+        flowerColors[i % flowerColors.length],
+        0.8 + (i % 4) * 0.14,
+      );
     }
   };
 

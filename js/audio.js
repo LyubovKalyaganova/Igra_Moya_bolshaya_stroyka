@@ -11,6 +11,8 @@
     'анна',
     'alena',
     'алена',
+    'alisa',
+    'алиса',
     'ksenia',
     'ксения',
     'tatiana',
@@ -18,7 +20,6 @@
     'татьяна',
     'oksana',
     'jane',
-    'alisa',
     'katya',
     'dasha',
     'female',
@@ -30,7 +31,7 @@
   ];
   var NUMBER_WORDS = ['ноль', 'один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять', 'десять'];
   var EDGE_TTS_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
-  var EDGE_TTS_VOICE = 'ru-RU-SvetlanaNeural';
+  var EDGE_TTS_VOICE = 'ru-RU-DariyaNeural';
 
   function GameAudio(progress) {
     this.volume = typeof progress.soundVolume === 'number' ? progress.soundVolume : 0.8;
@@ -79,7 +80,7 @@
       this.musicGain = this.ctx.createGain();
       this.engineGain = this.ctx.createGain();
       this.sfxGain.gain.value = 0.7;
-      this.musicGain.gain.value = 0.11;
+      this.musicGain.gain.value = 0.42;
       this.engineGain.gain.value = 0;
       this.sfxGain.connect(this.master);
       this.musicGain.connect(this.master);
@@ -272,7 +273,7 @@
       return false;
     }
     var name = (this.voice.name || '').toLowerCase();
-    return /natural|neural|online|premium|enhanced|google|yandex|svetlana|dariya/.test(name);
+    return /alisa|алиса|alena|алена|yandex|jane/.test(name);
   };
 
   GameAudio.prototype._speakNext = function (token) {
@@ -339,7 +340,7 @@
     audio.preload = 'auto';
     audio.referrerPolicy = 'no-referrer';
     audio.volume = Math.max(0.15, this.volume);
-    audio.playbackRate = excited ? 1.06 : 1.0;
+    audio.playbackRate = excited ? 1.12 : 1.06;
     this._speechAudio = audio;
 
     var failed = false;
@@ -534,13 +535,13 @@
           stamp +
           '\r\nContent-Type: application/json; charset=utf-8\r\n\r\n' +
           '{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}';
-        var rate = excited ? '+10%' : '+4%';
-        var pitch = excited ? '+12Hz' : '+6Hz';
+        var rate = excited ? '+16%' : '+10%';
+        var pitch = excited ? '+22Hz' : '+16Hz';
         var ssml =
           "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='https://www.w3.org/2001/mstts' xml:lang='ru-RU'>" +
           "<voice name='" +
           EDGE_TTS_VOICE +
-          "'><mstts:express-as style='cheerful'><prosody rate='" +
+          "'><mstts:express-as style='cheerful' styledegree='1.4'><prosody rate='" +
           rate +
           "' pitch='" +
           pitch +
@@ -633,8 +634,8 @@
     var utterance = new SpeechSynthesisUtterance(phrase);
     var male = this.voice && /pavel|ivan|dmitry|male/i.test(this.voice.name);
     utterance.lang = SPEECH_LANG;
-    utterance.rate = excited ? 1.04 : 0.98;
-    utterance.pitch = male ? (excited ? 1.42 : 1.32) : excited ? 1.32 : 1.22;
+    utterance.rate = excited ? 1.14 : 1.08;
+    utterance.pitch = male ? (excited ? 1.45 : 1.35) : excited ? 1.42 : 1.32;
     utterance.volume = this.volume;
     if (this.voice) {
       utterance.voice = this.voice;
@@ -702,7 +703,7 @@
     if (!this.musicGain || !this.ctx) {
       return;
     }
-    this.musicGain.gain.setTargetAtTime(duck ? 0.035 : 0.11, this.ctx.currentTime, 0.12);
+    this.musicGain.gain.setTargetAtTime(duck ? 0.14 : 0.42, this.ctx.currentTime, 0.12);
   };
 
   GameAudio.prototype._notify = function () {
@@ -718,10 +719,13 @@
     if (/^ru/.test(lang)) {
       score += 60;
     }
-    if (/natural|neural|online|premium|enhanced|google|yandex/.test(name)) {
+    if (/yandex|alisa|алиса|alena|алена/.test(name)) {
+      score += 80;
+    }
+    if (/natural|neural|online|premium|enhanced|google/.test(name)) {
       score += 45;
     }
-    if (/svetlana|dariya|daria|milena|elena|елена|anna|анна|ksenia|ксения|alena|алена|oksana|jane|alisa/.test(name)) {
+    if (/dariya|daria|svetlana|milena|elena|елена|anna|анна|ksenia|ксения|oksana|jane/.test(name)) {
       score += 28;
     }
     var n;
@@ -888,10 +892,10 @@
     this.musicTimer = 0;
     var freq = MUSIC_NOTES[this.musicNote % MUSIC_NOTES.length];
     this.musicNote += 1;
-    this._beep(freq, 0.38, 0.055, 0, this.musicGain);
-    this._beep(freq * 1.5, 0.3, 0.022, 0.04, this.musicGain);
+    this._beep(freq, 0.42, 0.2, 0, this.musicGain);
+    this._beep(freq * 1.5, 0.32, 0.08, 0.04, this.musicGain);
     if (this.musicNote % 4 === 0) {
-      this._beep(freq * 0.5, 0.5, 0.03, 0, this.musicGain);
+      this._beep(freq * 0.5, 0.55, 0.12, 0, this.musicGain);
     }
   };
 
@@ -902,8 +906,8 @@
     }
     this.birdTimer = 1.7 + Math.random() * 2.8;
     var chirp = 1800 + Math.random() * 1400;
-    this._beep(chirp, 0.09, 0.028, 0, this.musicGain);
-    this._beep(chirp * 1.18, 0.08, 0.022, 0.08, this.musicGain);
+    this._beep(chirp, 0.1, 0.055, 0, this.musicGain);
+    this._beep(chirp * 1.18, 0.09, 0.04, 0.08, this.musicGain);
   };
 
   GameAudio.prototype._beep = function (freq, duration, gainValue, delay, dest) {

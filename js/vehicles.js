@@ -16,7 +16,78 @@
     { t: 1, boom: -0.62, arm: 1.12, bucket: 0.38 },
   ];
 
-  function driveGroup(vehicle, input, bounds, dt) {
+  function wrapAngle(value) {
+    var a = value;
+    while (a > Math.PI) {
+      a -= Math.PI * 2;
+    }
+    while (a < -Math.PI) {
+      a += Math.PI * 2;
+    }
+    return a;
+  }
+
+  function lerpAngle(from, to, t) {
+    return from + wrapAngle(to - from) * t;
+  }
+
+  function applyCollisions(vehicle, obstacles) {
+    if (!obstacles || !obstacles.length) {
+      return;
+    }
+    var px = vehicle.group.position.x;
+    var pz = vehicle.group.position.z;
+    var r = vehicle.radius || 1.8;
+    var pass;
+    var i;
+    for (pass = 0; pass < 2; pass += 1) {
+    for (i = 0; i < obstacles.length; i += 1) {
+      var obstacle = obstacles[i];
+      var dx;
+      var dz;
+      var dist;
+      if (obstacle.kind === 'box') {
+        var cx = clamp(px, obstacle.minX, obstacle.maxX);
+        var cz = clamp(pz, obstacle.minZ, obstacle.maxZ);
+        dx = px - cx;
+        dz = pz - cz;
+        dist = Math.hypot(dx, dz);
+        if (dist < 0.0001) {
+          var left = px - obstacle.minX;
+          var right = obstacle.maxX - px;
+          var near = pz - obstacle.minZ;
+          var far = obstacle.maxZ - pz;
+          var smallest = Math.min(left, right, near, far);
+          if (smallest === left) {
+            px = obstacle.minX - r;
+          } else if (smallest === right) {
+            px = obstacle.maxX + r;
+          } else if (smallest === near) {
+            pz = obstacle.minZ - r;
+          } else {
+            pz = obstacle.maxZ + r;
+          }
+        } else if (dist < r) {
+          px += (dx / dist) * (r - dist);
+          pz += (dz / dist) * (r - dist);
+        }
+      } else {
+        dx = px - obstacle.x;
+        dz = pz - obstacle.z;
+        var minDist = r + (obstacle.radius || 1.6);
+        dist = Math.hypot(dx, dz) || 0.001;
+        if (dist < minDist) {
+          px += (dx / dist) * (minDist - dist);
+          pz += (dz / dist) * (minDist - dist);
+        }
+      }
+    }
+    }
+    vehicle.group.position.x = px;
+    vehicle.group.position.z = pz;
+  }
+
+  function driveGroup(vehicle, input, bounds, dt, obstacles) {
     var turn = (input.left ? 1 : 0) - (input.right ? 1 : 0);
     vehicle.group.rotation.y += turn * vehicle.turnSpeed * dt;
 
@@ -32,8 +103,38 @@
     vehicle.group.position.x += Math.sin(yaw) * vehicle.velocity * dt;
     vehicle.group.position.z += Math.cos(yaw) * vehicle.velocity * dt;
 
+    applyCollisions(vehicle, obstacles);
     vehicle.group.position.x = clamp(vehicle.group.position.x, -bounds, bounds);
     vehicle.group.position.z = clamp(vehicle.group.position.z, -bounds, bounds);
+  }
+
+  function addCabSides(parent, opts) {
+    var glass = {
+      roughness: 0.18,
+      metalness: 0.2,
+      transparent: true,
+      opacity: 0.88,
+    };
+    var x = opts.x;
+    var z = opts.z;
+    var yWin = opts.yWin;
+    var yDoor = opts.yDoor;
+    var winH = opts.winH || 0.42;
+    var winD = opts.winD || 0.55;
+    var doorH = opts.doorH || 0.72;
+    var doorD = opts.doorD || 0.62;
+    [-1, 1].forEach(function (side) {
+      var sx = side * x;
+      var windowPane = boxMesh(0.07, winH, winD, 0x81d4fa, glass);
+      windowPane.position.set(sx, yWin, z);
+      parent.add(windowPane);
+      var door = boxMesh(0.08, doorH, doorD, opts.doorColor);
+      door.position.set(sx, yDoor, z);
+      parent.add(door);
+      var handle = boxMesh(0.1, 0.07, 0.14, 0xffeb3b);
+      handle.position.set(sx + side * 0.05, yDoor + 0.08, z + doorD * 0.2);
+      parent.add(handle);
+    });
   }
 
   function spinWheels(wheels, velocity, dt) {
@@ -66,6 +167,7 @@
     this.speed = 7.2;
     this.reverseSpeed = 4.4;
     this.turnSpeed = 2.1;
+    this.radius = 2.15;
     this.velocity = 0;
     this.digging = false;
     this.digTime = 0;
@@ -95,9 +197,9 @@
     },
   });
 
-  Excavator.prototype.update = function (dt, input, bounds) {
+  Excavator.prototype.update = function (dt, input, bounds, obstacles) {
     if (!this.digging) {
-      driveGroup(this, input, bounds, dt);
+      driveGroup(this, input, bounds, dt, obstacles);
     }
     spinWheels(this.wheels, this.velocity, dt);
 
@@ -190,17 +292,17 @@
     windowFront.position.set(0, 2.12, 0.08);
     this.group.add(windowFront);
 
-    var windowSide = boxMesh(0.08, 0.5, 0.7, 0x81d4fa, {
-      roughness: 0.18,
-      metalness: 0.2,
-      transparent: true,
-      opacity: 0.88,
+    addCabSides(this.group, {
+      x: 0.66,
+      z: -0.55,
+      yWin: 2.22,
+      yDoor: 1.72,
+      winH: 0.42,
+      winD: 0.62,
+      doorH: 0.7,
+      doorD: 0.7,
+      doorColor: orange,
     });
-    windowSide.position.set(0.66, 2.1, -0.5);
-    this.group.add(windowSide);
-    var windowSideL = windowSide.clone();
-    windowSideL.position.x = -0.66;
-    this.group.add(windowSideL);
 
     var eyeL = sphereMesh(0.11, 0xffffff);
     eyeL.position.set(-0.22, 2.18, 0.14);
@@ -262,6 +364,7 @@
     this.speed = 8.2;
     this.reverseSpeed = 4.6;
     this.turnSpeed = 2.05;
+    this.radius = 2.35;
     this.velocity = 0;
     this.wheels = [];
     this.cargo = [];
@@ -285,9 +388,9 @@
     },
   });
 
-  DumpTruck.prototype.update = function (dt, input, bounds) {
+  DumpTruck.prototype.update = function (dt, input, bounds, obstacles) {
     if (!this.busy) {
-      driveGroup(this, input, bounds, dt);
+      driveGroup(this, input, bounds, dt, obstacles);
     }
     spinWheels(this.wheels, this.velocity, dt);
 
@@ -401,6 +504,18 @@
     windowFront.position.set(0, 1.72, 2.1);
     this.group.add(windowFront);
 
+    addCabSides(this.group, {
+      x: 0.88,
+      z: 1.35,
+      yWin: 1.82,
+      yDoor: 1.28,
+      winH: 0.45,
+      winD: 0.7,
+      doorH: 0.78,
+      doorD: 0.78,
+      doorColor: 0xef6c00,
+    });
+
     var eyeL = sphereMesh(0.12, 0xffffff);
     eyeL.position.set(-0.28, 1.72, 2.12);
     this.group.add(eyeL);
@@ -459,6 +574,7 @@
     this.speed = 7.4;
     this.reverseSpeed = 4.2;
     this.turnSpeed = 2.0;
+    this.radius = 2.2;
     this.velocity = 0;
     this.wheels = [];
     this.busy = false;
@@ -485,10 +601,10 @@
     this.drum.rotation.y += dt * speed;
   };
 
-  ConcreteMixer.prototype.update = function (dt, input, bounds) {
+  ConcreteMixer.prototype.update = function (dt, input, bounds, obstacles) {
     this.spinDrum(dt);
     if (!this.busy) {
-      driveGroup(this, input, bounds, dt);
+      driveGroup(this, input, bounds, dt, obstacles);
     }
     spinWheels(this.wheels, this.velocity, dt);
 
@@ -569,6 +685,18 @@
     windowFront.position.set(0, 1.62, 1.95);
     this.group.add(windowFront);
 
+    addCabSides(this.group, {
+      x: 0.84,
+      z: 1.25,
+      yWin: 1.72,
+      yDoor: 1.22,
+      winH: 0.42,
+      winD: 0.65,
+      doorH: 0.72,
+      doorD: 0.72,
+      doorColor: 0xffb300,
+    });
+
     var eyeL = sphereMesh(0.11, 0xffffff);
     eyeL.position.set(-0.26, 1.62, 1.98);
     this.group.add(eyeL);
@@ -617,16 +745,23 @@
     this.speed = 6.4;
     this.reverseSpeed = 3.8;
     this.turnSpeed = 1.7;
+    this.radius = 2.25;
     this.velocity = 0;
     this.wheels = [];
     this.busy = false;
     this.actionTime = 0;
-    this.actionDuration = 1.35;
+    this.actionDuration = 1.85;
     this.mode = 'idle';
     this.onPlaced = null;
     this.onPicked = null;
     this.placedThisAction = false;
     this.pickedThisAction = false;
+    this.pickX = 6.4;
+    this.pickZ = -6.3;
+    this.placeX = 0;
+    this.placeZ = 0;
+    this.pickYaw = 0;
+    this.placeYaw = 0;
 
     this._build();
     this._applyIdle();
@@ -660,9 +795,14 @@
     this.carriedBlock.material.color.setHex(hex);
   };
 
-  Crane.prototype.update = function (dt, input, bounds) {
+  Crane.prototype._yawToward = function (x, z) {
+    var world = Math.atan2(x - this.group.position.x, z - this.group.position.z);
+    return wrapAngle(world - this.group.rotation.y);
+  };
+
+  Crane.prototype.update = function (dt, input, bounds, obstacles) {
     if (!this.busy) {
-      driveGroup(this, input, bounds, dt);
+      driveGroup(this, input, bounds, dt, obstacles);
     }
     spinWheels(this.wheels, this.velocity, dt);
 
@@ -673,12 +813,20 @@
     this.actionTime += dt;
     var t = clamp(this.actionTime / this.actionDuration, 0, 1);
 
-    if (t < 0.22) {
-      var a = t / 0.22;
-      this.boomPivot.rotation.x = lerpNumber(-0.55, 0.12, a);
-      this.jibPivot.rotation.x = lerpNumber(0.35, 0.85, a);
-      this.hook.position.y = lerpNumber(-0.15, -1.15, a);
-    } else if (t < 0.38) {
+    if (t < 0.18) {
+      var turnPick = t / 0.18;
+      this.turret.rotation.y = lerpAngle(0, this.pickYaw, turnPick);
+      this.boomPivot.rotation.x = -0.55;
+      this.jibPivot.rotation.x = 0.35;
+      this.hook.position.y = -0.15;
+    } else if (t < 0.36) {
+      var down = (t - 0.18) / 0.18;
+      this.turret.rotation.y = this.pickYaw;
+      this.boomPivot.rotation.x = lerpNumber(-0.55, 0.18, down);
+      this.jibPivot.rotation.x = lerpNumber(0.35, 0.92, down);
+      this.hook.position.y = lerpNumber(-0.15, -1.2, down);
+    } else if (t < 0.44) {
+      this.turret.rotation.y = this.pickYaw;
       if (!this.pickedThisAction) {
         this.pickedThisAction = true;
         this.carried.visible = true;
@@ -686,17 +834,18 @@
           this.onPicked();
         }
       }
-    } else if (t < 0.62) {
-      var b = (t - 0.38) / 0.24;
-      this.boomPivot.rotation.x = lerpNumber(0.12, -0.72, b);
-      this.jibPivot.rotation.x = lerpNumber(0.85, 0.25, b);
-      this.hook.position.y = lerpNumber(-1.15, -0.2, b);
-      this.turret.rotation.y = lerpNumber(0, 0.45, b);
+    } else if (t < 0.7) {
+      var swing = (t - 0.44) / 0.26;
+      this.turret.rotation.y = lerpAngle(this.pickYaw, this.placeYaw, swing);
+      this.boomPivot.rotation.x = lerpNumber(0.18, -0.62, swing);
+      this.jibPivot.rotation.x = lerpNumber(0.92, 0.28, swing);
+      this.hook.position.y = lerpNumber(-1.2, -0.22, swing);
       this.carried.visible = true;
-    } else if (t < 0.82) {
-      var c = (t - 0.62) / 0.2;
-      this.hook.position.y = lerpNumber(-0.2, -1.05, c);
-      if (c > 0.45 && !this.placedThisAction) {
+    } else if (t < 0.84) {
+      var drop = (t - 0.7) / 0.14;
+      this.turret.rotation.y = this.placeYaw;
+      this.hook.position.y = lerpNumber(-0.22, -1.08, drop);
+      if (drop > 0.4 && !this.placedThisAction) {
         this.placedThisAction = true;
         this.carried.visible = false;
         if (this.onPlaced) {
@@ -704,11 +853,11 @@
         }
       }
     } else {
-      var d = (t - 0.82) / 0.18;
-      this.boomPivot.rotation.x = lerpNumber(-0.72, -0.55, d);
-      this.jibPivot.rotation.x = lerpNumber(0.25, 0.35, d);
-      this.hook.position.y = lerpNumber(-1.05, -0.15, d);
-      this.turret.rotation.y = lerpNumber(0.45, 0, d);
+      var back = (t - 0.84) / 0.16;
+      this.turret.rotation.y = lerpAngle(this.placeYaw, 0, back);
+      this.boomPivot.rotation.x = lerpNumber(-0.62, -0.55, back);
+      this.jibPivot.rotation.x = lerpNumber(0.28, 0.35, back);
+      this.hook.position.y = lerpNumber(-1.08, -0.15, back);
       this.carried.visible = false;
     }
 
@@ -729,6 +878,8 @@
     this.placedThisAction = false;
     this.pickedThisAction = false;
     this.velocity = 0;
+    this.pickYaw = this._yawToward(this.pickX, this.pickZ);
+    this.placeYaw = this._yawToward(this.placeX, this.placeZ);
     return true;
   };
 
@@ -777,6 +928,18 @@
     });
     windowFront.position.set(0, 0.82, 0.85);
     this.turret.add(windowFront);
+
+    addCabSides(this.turret, {
+      x: 0.76,
+      z: 0.15,
+      yWin: 0.88,
+      yDoor: 0.42,
+      winH: 0.38,
+      winD: 0.7,
+      doorH: 0.62,
+      doorD: 0.72,
+      doorColor: 0xffb300,
+    });
 
     var eyeL = sphereMesh(0.1, 0xffffff);
     eyeL.position.set(-0.22, 0.82, 0.88);
