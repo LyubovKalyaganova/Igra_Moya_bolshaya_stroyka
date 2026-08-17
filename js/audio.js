@@ -191,6 +191,31 @@
     this._speakNext(this._speechToken);
   };
 
+  GameAudio.prototype._spokenPlain = function (phrase) {
+    return String(phrase)
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/\s+и нажми/gi, ', и нажми')
+      .replace(/\s+а потом/gi, ', а потом')
+      .replace(/\s+а затем/gi, ', а затем')
+      .replace(/\s+(Теперь|теперь)\s+/g, '. $1 ')
+      .replace(/!\s+/g, '! ')
+      .replace(/\?\s+/g, '? ')
+      .replace(/\.\s+/g, '. ');
+  };
+
+  GameAudio.prototype._ssmlInner = function (phrase) {
+    var text = this._escapeXml(this._spokenPlain(phrase));
+    text = text.replace(/(Ура|Вау|Класс|Супер|Молодец|умница)/gi, "<emphasis level='moderate'>$1</emphasis>");
+    text = text.replace(/!\s+/g, '! <break time="340ms"/> ');
+    text = text.replace(/\?\s+/g, '? <break time="400ms"/> ');
+    text = text.replace(/\.\s+/g, '. <break time="480ms"/> ');
+    text = text.replace(/,\s+/g, ', <break time="220ms"/> ');
+    text = text.replace(/\s+—\s+/g, ' <break time="260ms"/> ');
+    text = text.replace(/:\s+/g, ': <break time="240ms"/> ');
+    return text;
+  };
+
   GameAudio.prototype._friendlySpeech = function (text) {
     var spoken = String(text).replace(/\s+/g, ' ').trim();
     var lower = spoken.toLowerCase();
@@ -445,9 +470,9 @@
   };
 
   GameAudio.prototype._speakYandex = function (phrase, token, excited, done) {
-    var q = encodeURIComponent(phrase);
+    var q = encodeURIComponent(this._spokenPlain(phrase));
     var url =
-      'https://tts.voicetech.yandex.net/tts?format=mp3&quality=hi&platform=web&application=translate&lang=ru_RU&speaker=alyss&emotion=good&speed=1.05&text=' +
+      'https://tts.voicetech.yandex.net/tts?format=mp3&quality=hi&platform=web&application=translate&lang=ru_RU&speaker=alyss&emotion=good&speed=0.95&text=' +
       q;
     this._playSpeechAudio(
       url,
@@ -464,7 +489,7 @@
   };
 
   GameAudio.prototype._speakGoogle = function (phrase, token, excited, done) {
-    var q = encodeURIComponent(phrase);
+    var q = encodeURIComponent(this._spokenPlain(phrase));
     var url =
       'https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ru&q=' + q;
     this._playSpeechAudio(
@@ -587,19 +612,26 @@
           stamp +
           '\r\nContent-Type: application/json; charset=utf-8\r\n\r\n' +
           '{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-96kbitrate-mono-mp3"}}}}';
-        var rate = excited ? '+18%' : '+14%';
-        var pitch = excited ? '+6%' : '+4%';
-        var ssml =
-          "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='https://www.w3.org/2001/mstts' xml:lang='ru-RU'>" +
-          "<voice name='" +
-          EDGE_TTS_VOICE +
-          "'><mstts:express-as style='cheerful'><prosody rate='" +
+        var rate = excited ? '+6%' : '-4%';
+        var pitch = excited ? '+5%' : '+2%';
+        var inner =
+          "<prosody rate='" +
           rate +
           "' pitch='" +
           pitch +
           "'>" +
-          self._escapeXml(phrase) +
-          '</prosody></mstts:express-as></voice></speak>';
+          self._ssmlInner(phrase) +
+          '</prosody>';
+        if (excited) {
+          inner = "<mstts:express-as style='cheerful'>" + inner + '</mstts:express-as>';
+        }
+        var ssml =
+          "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='https://www.w3.org/2001/mstts' xml:lang='ru-RU'>" +
+          "<voice name='" +
+          EDGE_TTS_VOICE +
+          "'>" +
+          inner +
+          '</voice></speak>';
         var ssmlMsg =
           'Path: ssml\r\nX-RequestId: ' +
           requestId +
@@ -683,11 +715,11 @@
       return;
     }
 
-    var utterance = new SpeechSynthesisUtterance(phrase);
+    var utterance = new SpeechSynthesisUtterance(this._spokenPlain(phrase));
     var raspy = this._isRaspyVoice(this.voice);
     utterance.lang = SPEECH_LANG;
-    utterance.rate = raspy ? 1.08 : excited ? 1.18 : 1.14;
-    utterance.pitch = raspy ? 1.06 : excited ? 1.22 : 1.16;
+    utterance.rate = raspy ? 0.96 : excited ? 1.04 : 0.98;
+    utterance.pitch = raspy ? 1.04 : excited ? 1.14 : 1.08;
     utterance.volume = this.volume;
     if (this.voice) {
       utterance.voice = this.voice;
