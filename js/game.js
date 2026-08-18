@@ -237,6 +237,9 @@
     this.ui.onMathAnswer = function (value, question, button) {
       self._handleMathAnswer(value, question, button);
     };
+    this.ui.onPlayPick = function (track) {
+      self._pickPlayTrack(track);
+    };
   };
 
   Game.prototype._viewSize = function () {
@@ -1218,19 +1221,51 @@
     this.input.reset();
     this._cameraFocus = 'vehicle';
     this.mathIndex = 0;
+    this.playTrack = 'hub';
+    this.playDone = { count: false, puzzle: false, shadow: false };
     this.tasks.startMathPhase();
     this.ui.setHint(this.tasks.level.hintMath);
+    this.ui.speak('А теперь давай поиграем!');
+    this.ui.showPlayHub(this.playDone);
+  };
+
+  Game.prototype._pickPlayTrack = function (track) {
+    this.playTrack = track;
+    this.mathIndex = 0;
+    this.idleTime = 0;
+    if (track === 'puzzle') {
+      this.ui.showMath(MBS.PLAY_PUZZLE, 0, 1);
+      return;
+    }
+    if (track === 'shadow') {
+      this.ui.showMath(MBS.PLAY_SHADOW, 0, 1);
+      return;
+    }
     this._showCurrentMath();
   };
 
   Game.prototype._showCurrentMath = function () {
-    var questions = MBS.MATH_QUESTIONS || [];
+    var questions = MBS.PLAY_COUNT || MBS.MATH_QUESTIONS || [];
     var question = questions[this.mathIndex];
     if (!question) {
-      this._finishMath();
+      this._markPlayDone('count');
       return;
     }
     this.ui.showMath(question, this.mathIndex, questions.length);
+  };
+
+  Game.prototype._markPlayDone = function (track) {
+    if (!this.playDone) {
+      this.playDone = { count: false, puzzle: false, shadow: false };
+    }
+    this.playDone[track] = true;
+    if (this.playDone.count && this.playDone.puzzle && this.playDone.shadow) {
+      this._finishMath();
+      return;
+    }
+    this.playTrack = 'hub';
+    this.ui.speak('Выбери ещё игру.');
+    this.ui.showPlayHub(this.playDone);
   };
 
   Game.prototype._handleMathAnswer = function (value, question, button) {
@@ -1248,9 +1283,17 @@
     }
     var self = this;
     window.setTimeout(function () {
+      if (self.playTrack === 'puzzle') {
+        self._markPlayDone('puzzle');
+        return;
+      }
+      if (self.playTrack === 'shadow') {
+        self._markPlayDone('shadow');
+        return;
+      }
       self.mathIndex += 1;
-      if (self.mathIndex >= (MBS.MATH_QUESTIONS || []).length) {
-        self._finishMath();
+      if (self.mathIndex >= (MBS.PLAY_COUNT || MBS.MATH_QUESTIONS || []).length) {
+        self._markPlayDone('count');
       } else {
         self._showCurrentMath();
       }
@@ -1503,6 +1546,9 @@
       return;
     }
     this.idleTime += dt;
+    if (this.tasks.phase === 'math') {
+      return;
+    }
     if (this.idleTime < 12) {
       return;
     }

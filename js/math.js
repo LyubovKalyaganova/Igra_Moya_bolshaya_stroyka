@@ -7,21 +7,11 @@
     return Math.min(target, current + 1);
   }
 
-  function brickSvg() {
-    return (
-      '<svg class="play-brick" viewBox="0 0 56 32" aria-hidden="true">' +
-      '<rect x="1" y="3" width="54" height="26" rx="5" fill="#e53935"/>' +
-      '<rect x="4" y="6" width="48" height="20" rx="4" fill="#ef6c00"/>' +
-      '<rect x="8" y="10" width="16" height="6" rx="2" fill="#ffcc80" opacity="0.7"/>' +
-      '</svg>'
-    );
-  }
-
   function bricksHtml(count) {
     var html = '<div class="play-bricks">';
     var i;
     for (i = 0; i < count; i += 1) {
-      html += brickSvg();
+      html += '<span class="clay-brick" aria-hidden="true"></span>';
     }
     return html + '</div>';
   }
@@ -95,13 +85,13 @@
     });
   }
 
-  var PLAY_TASKS = [
+  var COUNT_TASKS = [
     {
       id: 'stars',
       kind: 'choice',
       prompt: 'Сколько звёзд?',
       visual: '⭐⭐⭐⭐⭐',
-      voice: 'Посмотри на звёздочки. Сколько их? Нажми нужную цифру. Считаем до пяти!',
+      voice: 'Посмотри на звёздочки. Сколько их? Нажми нужную цифру.',
       choices: digitChoices(5),
       answer: 5,
       speakNumber: true,
@@ -150,44 +140,42 @@
       id: 'sub',
       kind: 'choice',
       prompt: 'Было 5 кирпичей. Убрали 1. Сколько осталось?',
-      visualHtml:
-        '<div class="play-formula">' +
-        bricksHtml(5) +
-        '<span class="play-op">→</span>' +
-        bricksHtml(4) +
-        '</div>',
+      visualHtml: '<div class="play-formula">' + bricksHtml(5) + '<span class="play-op">→</span>' + bricksHtml(4) + '</div>',
       voice: 'Было пять кирпичей. Один убрали. Сколько осталось?',
       choices: digitChoices(4),
       answer: 4,
       speakNumber: true,
     },
-    {
-      id: 'puzzle',
-      kind: 'puzzle',
-      prompt: 'Собери экскаватор',
-      voice: 'Собери картинку экскаватора. Нажми деталь, потом нажми её место.',
-      art: puzzleSvg(),
-      cols: 2,
-      rows: 2,
-      answer: 'done',
-      speakNumber: false,
-    },
-    {
-      id: 'shadow',
-      kind: 'shadow',
-      prompt: 'Найди, чья это тень',
-      voice: 'Найди тень каждой машины. Нажми машинку, потом нажми её тень.',
-      vehicles: ['excavator', 'dumpTruck', 'roller'],
-      answer: 'done',
-      speakNumber: false,
-    },
   ];
+
+  var PUZZLE_TASK = {
+    id: 'puzzle',
+    kind: 'puzzle',
+    prompt: 'Собери экскаватор',
+    voice: 'Собери картинку экскаватора. Нажми деталь, потом нажми её место.',
+    art: puzzleSvg(),
+    cols: 2,
+    rows: 2,
+    answer: 'done',
+    speakNumber: false,
+  };
+
+  var SHADOW_TASK = {
+    id: 'shadow',
+    kind: 'shadow',
+    prompt: 'Найди, чья это тень',
+    voice: 'Найди тень каждой машины. Нажми машинку, потом нажми её тень.',
+    vehicles: ['excavator', 'dumpTruck', 'roller'],
+    answer: 'done',
+    speakNumber: false,
+  };
 
   MBS.formatCount = formatCount;
   MBS.nextCount = nextCount;
-  MBS.brickSvg = brickSvg;
   MBS.bricksHtml = bricksHtml;
   MBS.vehicleSvg = vehicleSvg;
-  MBS.PLAY_TASKS = PLAY_TASKS;
-  MBS.MATH_QUESTIONS = PLAY_TASKS;
+  MBS.PLAY_COUNT = COUNT_TASKS;
+  MBS.PLAY_PUZZLE = PUZZLE_TASK;
+  MBS.PLAY_SHADOW = SHADOW_TASK;
+  MBS.MATH_QUESTIONS = COUNT_TASKS;
 })(window.MBS = window.MBS || {});

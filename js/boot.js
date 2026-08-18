@@ -1,19 +1,20 @@
 (function () {
+  var CACHE = 'play3';
   var FILES = [
     'js/vendor/three.min.js',
-    'js/utils.js',
-    'js/math.js',
-    'js/levels.js',
-    'js/storage.js',
-    'js/rewards.js',
-    'js/tasks.js',
-    'js/player.js',
-    'js/audio.js',
-    'js/ui.js',
-    'js/world.js',
-    'js/vehicles.js',
-    'js/game.js',
-    'js/main.js',
+    'js/utils.js?v=' + CACHE,
+    'js/math.js?v=' + CACHE,
+    'js/levels.js?v=' + CACHE,
+    'js/storage.js?v=' + CACHE,
+    'js/rewards.js?v=' + CACHE,
+    'js/tasks.js?v=' + CACHE,
+    'js/player.js?v=' + CACHE,
+    'js/audio.js?v=' + CACHE,
+    'js/ui.js?v=' + CACHE,
+    'js/world.js?v=' + CACHE,
+    'js/vehicles.js?v=' + CACHE,
+    'js/game.js?v=' + CACHE,
+    'js/main.js?v=' + CACHE,
   ];
   var THREE_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js';
 

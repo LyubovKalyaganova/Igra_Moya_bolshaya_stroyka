@@ -42,6 +42,7 @@
     this.onMathPlay = null;
     this.onHudMath = null;
     this.onMathAnswer = null;
+    this.onPlayPick = null;
   }
 
   GameUI.prototype.bind = function () {
@@ -317,18 +318,65 @@
     }
   };
 
-  GameUI.prototype.showMath = function (question, index, total) {
+  GameUI.prototype._openMathScreen = function () {
     this.mathLocked = false;
     this._playPicked = null;
     if (this.mathBadge) {
       this.mathBadge.textContent = 'Задания на стройке';
     }
-    this.mathProgress.textContent = index + 1 + ' / ' + total;
-    this.mathPrompt.textContent = question.prompt;
     this.mathChoices.innerHTML = '';
     this.mathChoices.classList.remove('is-shake');
     this.mathVisual.innerHTML = '';
     this.mathVisual.textContent = '';
+    this.mathScreen.removeAttribute('hidden');
+    this.mathScreen.classList.add('is-visible');
+    this.hideHudMath();
+  };
+
+  GameUI.prototype.showPlayHub = function (done) {
+    var self = this;
+    done = done || {};
+    this._openMathScreen();
+    this.mathScreen.classList.add('is-play');
+    this.mathVisual.classList.add('has-html');
+    var finished = (done.count ? 1 : 0) + (done.puzzle ? 1 : 0) + (done.shadow ? 1 : 0);
+    this.mathProgress.textContent = finished + ' / 3';
+    this.mathPrompt.textContent = 'Выбери игру';
+
+    var games = [
+      { id: 'count', title: 'Посчитай', hint: 'цифры и кирпичики' },
+      { id: 'puzzle', title: 'Пазл', hint: 'собери картинку' },
+      { id: 'shadow', title: 'Тени', hint: 'найди тень машины' },
+    ];
+    games.forEach(function (game) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'play-hub-btn';
+      if (done[game.id]) {
+        button.classList.add('is-done');
+      }
+      button.innerHTML =
+        '<span class="play-hub-title">' +
+        game.title +
+        '</span><span class="play-hub-hint">' +
+        (done[game.id] ? 'Готово!' : game.hint) +
+        '</span>';
+      button.addEventListener('click', function () {
+        if (self.mathLocked) {
+          return;
+        }
+        if (self.onPlayPick) {
+          self.onPlayPick(game.id);
+        }
+      });
+      self.mathChoices.appendChild(button);
+    });
+  };
+
+  GameUI.prototype.showMath = function (question, index, total) {
+    this._openMathScreen();
+    this.mathProgress.textContent = index + 1 + ' / ' + total;
+    this.mathPrompt.textContent = question.prompt;
     this.mathVisual.classList.toggle(
       'has-html',
       !!(question.visualHtml || question.kind === 'puzzle' || question.kind === 'shadow'),
@@ -343,10 +391,9 @@
       this._showChoice(question);
     }
 
-    this.mathScreen.removeAttribute('hidden');
-    this.mathScreen.classList.add('is-visible');
-    this.hideHudMath();
-    this.speak(question.voice);
+    if (question.voice) {
+      this.speak(question.voice);
+    }
   };
 
   GameUI.prototype._showChoice = function (question) {
