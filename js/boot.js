@@ -1,5 +1,5 @@
 (function () {
-  var CACHE = 'play3';
+  var CACHE = 'play5';
   var FILES = [
     'js/vendor/three.min.js',
     'js/utils.js?v=' + CACHE,

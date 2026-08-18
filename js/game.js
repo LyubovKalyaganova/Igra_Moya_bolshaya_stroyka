@@ -240,6 +240,9 @@
     this.ui.onPlayPick = function (track) {
       self._pickPlayTrack(track);
     };
+    this.ui.onMathBack = function () {
+      self._leaveMathToBuild();
+    };
   };
 
   Game.prototype._viewSize = function () {
@@ -1223,32 +1226,38 @@
     this.mathIndex = 0;
     this.playTrack = 'hub';
     this.playDone = { count: false, puzzle: false, shadow: false };
+    this._clearMathTimer();
     this.tasks.startMathPhase();
     this.ui.setHint(this.tasks.level.hintMath);
     this.ui.speak('А теперь давай поиграем!');
     this.ui.showPlayHub(this.playDone);
   };
 
+  Game.prototype._playList = function () {
+    if (this.playTrack === 'puzzle') {
+      if (MBS.PLAY_PUZZLES && MBS.PLAY_PUZZLES.length) {
+        return MBS.PLAY_PUZZLES;
+      }
+      return MBS.PLAY_PUZZLE ? [MBS.PLAY_PUZZLE] : [];
+    }
+    if (this.playTrack === 'shadow') {
+      return MBS.PLAY_SHADOW ? [MBS.PLAY_SHADOW] : [];
+    }
+    return MBS.PLAY_COUNT || MBS.MATH_QUESTIONS || [];
+  };
+
   Game.prototype._pickPlayTrack = function (track) {
     this.playTrack = track;
     this.mathIndex = 0;
     this.idleTime = 0;
-    if (track === 'puzzle') {
-      this.ui.showMath(MBS.PLAY_PUZZLE, 0, 1);
-      return;
-    }
-    if (track === 'shadow') {
-      this.ui.showMath(MBS.PLAY_SHADOW, 0, 1);
-      return;
-    }
     this._showCurrentMath();
   };
 
   Game.prototype._showCurrentMath = function () {
-    var questions = MBS.PLAY_COUNT || MBS.MATH_QUESTIONS || [];
+    var questions = this._playList();
     var question = questions[this.mathIndex];
     if (!question) {
-      this._markPlayDone('count');
+      this._markPlayDone(this.playTrack === 'puzzle' || this.playTrack === 'shadow' ? this.playTrack : 'count');
       return;
     }
     this.ui.showMath(question, this.mathIndex, questions.length);
@@ -1282,22 +1291,46 @@
       this.ui.speak('Молодец!');
     }
     var self = this;
-    window.setTimeout(function () {
-      if (self.playTrack === 'puzzle') {
-        self._markPlayDone('puzzle');
-        return;
-      }
-      if (self.playTrack === 'shadow') {
-        self._markPlayDone('shadow');
-        return;
-      }
+    this._clearMathTimer();
+    this._mathTimer = window.setTimeout(function () {
+      self._mathTimer = null;
       self.mathIndex += 1;
-      if (self.mathIndex >= (MBS.PLAY_COUNT || MBS.MATH_QUESTIONS || []).length) {
-        self._markPlayDone('count');
+      if (self.mathIndex >= self._playList().length) {
+        self._markPlayDone(self.playTrack === 'puzzle' || self.playTrack === 'shadow' ? self.playTrack : 'count');
       } else {
         self._showCurrentMath();
       }
     }, 900);
+  };
+
+  Game.prototype._clearMathTimer = function () {
+    if (this._mathTimer) {
+      window.clearTimeout(this._mathTimer);
+      this._mathTimer = null;
+    }
+  };
+
+  Game.prototype._leaveMathToBuild = function () {
+    this._clearMathTimer();
+    this.ui.hideMath();
+    this.idleTime = 0;
+    this.playTrack = 'hub';
+
+    if (this.mathResumePhase) {
+      this._resumeAfterMath();
+      this.ui.speak('Поехали на стройку!');
+      return;
+    }
+
+    this.mathFromMenu = false;
+    this.playing = true;
+    this.paused = false;
+    this.input.reset();
+    this.tasks.phase = 'dig';
+    this.tasks.hint = this.tasks.level.hintTask;
+    this.ui.setHint(this.tasks.level.hintTask);
+    this.ui.showHudMath();
+    this.ui.speak(this.tasks.level.voiceStart);
   };
 
   Game.prototype._finishMath = function () {

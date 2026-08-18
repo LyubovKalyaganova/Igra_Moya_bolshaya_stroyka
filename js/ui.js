@@ -29,6 +29,7 @@
     this.mathPrompt = root.querySelector('#math-prompt');
     this.mathVisual = root.querySelector('#math-visual');
     this.mathChoices = root.querySelector('#math-choices');
+    this.mathBackButton = root.querySelector('#btn-math-back');
     this.mathLocked = false;
     this._playPicked = null;
     this.audio = null;
@@ -43,6 +44,7 @@
     this.onHudMath = null;
     this.onMathAnswer = null;
     this.onPlayPick = null;
+    this.onMathBack = null;
   }
 
   GameUI.prototype.bind = function () {
@@ -78,6 +80,14 @@
         self.onNext();
       }
     });
+
+    if (this.mathBackButton) {
+      this.mathBackButton.addEventListener('click', function () {
+        if (self.onMathBack) {
+          self.onMathBack();
+        }
+      });
+    }
 
     this.muteButton.addEventListener('click', function () {
       if (self.audio) {
@@ -345,7 +355,7 @@
 
     var games = [
       { id: 'count', title: 'Посчитай', hint: 'цифры и кирпичики' },
-      { id: 'puzzle', title: 'Пазл', hint: 'собери картинку' },
+      { id: 'puzzle', title: 'Пазл', hint: 'собери машинки' },
       { id: 'shadow', title: 'Тени', hint: 'найди тень машины' },
     ];
     games.forEach(function (game) {

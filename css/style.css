@@ -953,6 +953,28 @@ body {
   animation: math-shake 0.38s ease;
 }
 
+#btn-math-back {
+  margin: 18px auto 0;
+  min-width: min(260px, 100%);
+  min-height: clamp(56px, 10vw, 72px);
+  padding: 0 20px;
+  border: 0;
+  border-radius: 28px;
+  background: #ffcc80;
+  box-shadow: 0 8px 0 #ef6c00;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: clamp(20px, 4vw, 28px);
+  font-weight: 800;
+  cursor: pointer;
+  display: block;
+}
+
+#btn-math-back:active {
+  transform: translateY(4px);
+  box-shadow: 0 4px 0 #ef6c00;
+}
+
 @keyframes math-shake {
   0%,
   100% {
