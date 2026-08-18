@@ -59,8 +59,93 @@
         return 'Часть ' + current + ' из ' + target;
       },
       hintFinishDone: 'Ура! Дом готов!',
-      hintFree: 'Молодец! Можно покататься.',
-      voiceFree: 'Ура, дом готов! Ты настоящий строитель. Внизу можно выбрать машинку и покататься. Езди куда хочешь!',
+      hintGrade: 'Возьми бульдозер. Расчисти дорогу.',
+      voiceGrade:
+        'Дом готов! Теперь построим дорогу. Бульдозер умеет толкать землю. Подъедь к кучке и нажми жёлтую кнопку Толкать.',
+      voiceReadyGrade: 'Кучка рядом! Жми кнопку Толкать!',
+      voiceCoachGrade: 'Подъедь бульдозером к жёлтому кругу и нажми Толкать.',
+      hintGradeCloser: 'Подъедь бульдозером поближе к кучке!',
+      hintGradeCount: function (current, target) {
+        return 'Кучка ' + current + ' из ' + target;
+      },
+      hintGradeDone: 'Отлично! Участок ровный!',
+      hintGravel: 'Садись в самосвал. Загрузи камешки.',
+      voiceGravel:
+        'Самосвал перевозит груз. Подъедь к кучке камешков и нажми Загрузить. Нужно три ковша.',
+      voiceReadyGravel: 'Камешки рядом! Жми кнопку Загрузить!',
+      voiceCoachGravel: 'Подъедь самосвалом к камешкам и нажми Загрузить.',
+      hintGravelCloser: 'Подъедь самосвалом поближе к камешкам!',
+      hintGravelCount: function (current, target) {
+        return 'Камешки ' + current + ' из ' + target;
+      },
+      hintGravelHaul: 'Отвези камешки на дорогу.',
+      voiceGravelHaul: 'Класс! Теперь поезжай к жёлтому кругу на дороге и нажми Выгрузить.',
+      voiceReadyGravelUnload: 'Дорога рядом! Жми кнопку Выгрузить!',
+      voiceCoachGravelUnload: 'Подъедь к жёлтому кругу и нажми Выгрузить.',
+      hintGravelUnloadCloser: 'Подъедь поближе к дороге!',
+      hintGravelUnloadDone: 'Отлично! Материал на месте!',
+      hintRoll: 'Садись на каток. Выровняй дорогу.',
+      voiceRoll:
+        'Каток умеет выравнивать дорогу. Подъедь к жёлтому кругу и нажми жёлтую кнопку Катить. Давай посчитаем плитки!',
+      voiceReadyRoll: 'Круг рядом! Жми кнопку Катить!',
+      voiceCoachRoll: 'Подъедь катком к жёлтому кругу и нажми Катить.',
+      hintRollCloser: 'Подъедь катком поближе к кругу!',
+      hintRollCount: function (current, target) {
+        return 'Плитка ' + current + ' из ' + target;
+      },
+      hintRollDone: 'Ура! Дорога готова!',
+      hintBridge: 'Садись на кран. Поставь мост.',
+      voiceBridge:
+        'Теперь мостик через воду. Кран поднимает тяжёлые блоки. Нужно четыре блока. Подъедь к кругу и нажми Установить.',
+      voiceReadyBridge: 'Круг рядом! Жми кнопку Установить!',
+      voiceCoachBridge: 'Подъедь краном к жёлтому кругу и нажми Установить.',
+      hintBridgeCloser: 'Подъедь краном поближе к кругу!',
+      hintBridgeCount: function (current, target) {
+        return 'Блок ' + current + ' из ' + target;
+      },
+      hintBridgeDone: 'Мост готов! Можно ехать дальше.',
+      hintPlay: 'Поставь качели, горку и песочницу.',
+      voicePlayground:
+        'Теперь детская площадка. Поставь песочницу, горку и качели. Подъедь к кругу и нажми Установить.',
+      voiceReadyPlay: 'Круг рядом! Жми кнопку Установить!',
+      voiceCoachPlay: 'Подъедь краном к жёлтому кругу и нажми Установить.',
+      hintPlayCloser: 'Подъедь краном поближе к кругу!',
+      hintPlayCount: function (current, target) {
+        return 'Предмет ' + current + ' из ' + target;
+      },
+      hintPlayDone: 'Игрушки на месте!',
+      hintBenches: 'Поставь 3 лавочки.',
+      voiceBenches: 'Поставь три лавочки. Давай посчитаем! Подъедь к кругу и нажми Установить.',
+      voiceReadyBenches: 'Круг рядом! Жми Установить!',
+      voiceCoachBenches: 'Подъедь к жёлтому кругу и поставь лавочку.',
+      hintBenchesCloser: 'Подъедь поближе к кругу!',
+      hintBenchesCount: function (current, target) {
+        return 'Лавочка ' + current + ' из ' + target;
+      },
+      hintBenchesDone: 'Лавочки стоят!',
+      hintTrees: 'Посади 4 дерева.',
+      voiceTrees: 'Посади четыре деревца. Подъедь к кругу и нажми Посадить.',
+      voiceReadyTrees: 'Круг рядом! Жми Посадить!',
+      voiceCoachTrees: 'Подъедь к жёлтому кругу и посади дерево.',
+      hintTreesCloser: 'Подъедь поближе к кругу!',
+      hintTreesCount: function (current, target) {
+        return 'Дерево ' + current + ' из ' + target;
+      },
+      hintTreesDone: 'Какой зелёный парк!',
+      hintLamps: 'Поставь 2 фонаря.',
+      voiceLamps: 'Поставь два фонарика. Подъедь к кругу и нажми Установить.',
+      voiceReadyLamps: 'Круг рядом! Жми Установить!',
+      voiceCoachLamps: 'Подъедь к кругу и поставь фонарь.',
+      hintLampsCloser: 'Подъедь поближе к кругу!',
+      hintLampsCount: function (current, target) {
+        return 'Фонарь ' + current + ' из ' + target;
+      },
+      hintLampsDone: 'Площадка светится!',
+      hintMath: 'Посчитай предметы на стройке.',
+      voiceMath: 'Посмотри на картинку и нажми правильный ответ. Я рядом!',
+      hintFree: 'Молодец! Можно покататься по городу.',
+      voiceFree:
+        'Ура! Ты построил дом, дорогу, мост и площадку. Ты настоящий строитель. Внизу можно выбрать машинку.',
       voiceNext: 'Ура, задание выполнено! Нажми жёлтую кнопку Дальше, и поедем дальше!',
       voicePlay: 'Нажми большую жёлтую кнопку Играть. Я тебя жду!',
       rewardDigTitle: 'Отличная работа!',
@@ -73,9 +158,35 @@
       rewardWallsText: 'Ты поставил стены и заработал звезду!',
       rewardFinishTitle: 'Дом построен!',
       rewardFinishText: 'Ты поставил окна, дверь и крышу!',
+      rewardGradeTitle: 'Участок ровный!',
+      rewardGradeText: 'Бульдозер расчистил дорогу!',
+      rewardGravelTitle: 'Материал привезён!',
+      rewardGravelText: 'Самосвал привёз камешки!',
+      rewardRollTitle: 'Какая дорога!',
+      rewardRollText: 'Каток выровнял плитки!',
+      rewardBridgeTitle: 'Мост готов!',
+      rewardBridgeText: 'Четыре блока на месте!',
+      rewardPlayTitle: 'Площадка играет!',
+      rewardPlayText: 'Горка, качели и песочница на месте!',
+      rewardBenchesTitle: 'Лавочки стоят!',
+      rewardBenchesText: 'Ты поставил три лавочки!',
+      rewardTreesTitle: 'Деревья растут!',
+      rewardTreesText: 'Ты посадил четыре дерева!',
+      rewardLampsTitle: 'Светло и уютно!',
+      rewardLampsText: 'Два фонаря светят на площадке!',
+      rewardMathTitle: 'Ты считаешь отлично!',
+      rewardMathText: 'Все задания по математике выполнены!',
       pourTarget: 3,
       wallTarget: 5,
       finishTarget: 5,
+      gradeTarget: 3,
+      gravelTarget: 3,
+      rollTarget: 4,
+      bridgeTarget: 4,
+      playTarget: 3,
+      benchTarget: 3,
+      treeTarget: 4,
+      lampTarget: 2,
     },
   ];
 

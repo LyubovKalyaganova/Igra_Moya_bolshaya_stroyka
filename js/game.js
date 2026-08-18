@@ -29,6 +29,7 @@
     this.ui.audio = this.audio;
     this.idleTime = 0;
     this.wasNearAction = false;
+    this.mathIndex = 0;
 
     this._createRenderer();
     this._createScene();
@@ -40,7 +41,10 @@
     this.dumpTruck = new MBS.DumpTruck(this.scene);
     this.mixer = new MBS.ConcreteMixer(this.scene);
     this.crane = new MBS.Crane(this.scene);
+    this.bulldozer = new MBS.Bulldozer(this.scene);
+    this.roller = new MBS.RoadRoller(this.scene);
     this.activeVehicle = this.excavator;
+    this.mathFromMenu = false;
 
     var self = this;
     this.excavator.onScoop = function () {
@@ -145,11 +149,24 @@
     this.input.attach();
 
     this.ui.onPlay = function () {
+      self.mathFromMenu = false;
       self.playing = true;
+      self.paused = false;
+      if (self.tasks.phase === 'math') {
+        self.tasks.phase = 'dig';
+        self.tasks.hint = self.tasks.level.hintTask;
+      }
       self.audio.ensure();
       self.idleTime = 0;
       self.ui.setHint(self.tasks.level.hintTask);
       self.ui.speak(self.tasks.level.voiceStart);
+    };
+
+    this.ui.onMathPlay = function () {
+      self.mathFromMenu = true;
+      self.playing = true;
+      self.audio.ensure();
+      self._beginMathPhase();
     };
 
     this.ui.onNext = function () {
@@ -163,8 +180,26 @@
         self._beginWallsPhase();
       } else if (self.pendingPhase === 'finish') {
         self._beginFinishPhase();
+      } else if (self.pendingPhase === 'grade') {
+        self._beginGradePhase();
+      } else if (self.pendingPhase === 'gravel') {
+        self._beginGravelPhase();
+      } else if (self.pendingPhase === 'roll') {
+        self._beginRollPhase();
+      } else if (self.pendingPhase === 'bridge') {
+        self._beginBridgePhase();
+      } else if (self.pendingPhase === 'play') {
+        self._beginPlayPhase();
+      } else if (self.pendingPhase === 'benches') {
+        self._beginBenchPhase();
+      } else if (self.pendingPhase === 'trees') {
+        self._beginTreePhase();
+      } else if (self.pendingPhase === 'lamps') {
+        self._beginLampPhase();
       } else if (self.pendingPhase === 'free') {
         self._beginFreeRoam();
+      } else if (self.pendingPhase === 'menu') {
+        self._returnToMenu();
       }
       self.idleTime = 0;
       self.pendingPhase = null;
@@ -181,6 +216,9 @@
     };
     this.ui.onVehiclePick = function (name) {
       self._setActiveVehicle(name);
+    };
+    this.ui.onMathAnswer = function (value, question, button) {
+      self._handleMathAnswer(value, question, button);
     };
   };
 
@@ -246,6 +284,9 @@
         return false;
       }
       if (el.closest('#reward-screen.is-visible')) {
+        return false;
+      }
+      if (el.closest('#math-screen.is-visible')) {
         return false;
       }
       return true;
@@ -356,6 +397,12 @@
       if (this.crane.busy) {
         this.crane.update(dt, this.idleInput, this.site.bounds, this._obstaclesFor(this.crane));
       }
+      if (this.bulldozer.busy) {
+        this.bulldozer.update(dt, this.idleInput, this.site.bounds, this._obstaclesFor(this.bulldozer));
+      }
+      if (this.roller.busy) {
+        this.roller.update(dt, this.idleInput, this.site.bounds, this._obstaclesFor(this.roller));
+      }
     }
 
     if (
@@ -386,6 +433,24 @@
       this._tryPlaceWall();
     } else if (phase === 'finish') {
       this._tryPlaceHousePart();
+    } else if (phase === 'grade') {
+      this._tryGrade();
+    } else if (phase === 'gravelLoad') {
+      this._tryGravelLoad();
+    } else if (phase === 'gravelUnload') {
+      this._tryGravelUnload();
+    } else if (phase === 'roll') {
+      this._tryRoll();
+    } else if (phase === 'bridge') {
+      this._tryPlaceBridge();
+    } else if (phase === 'play') {
+      this._tryPlacePlay();
+    } else if (phase === 'benches') {
+      this._tryPlaceBench();
+    } else if (phase === 'trees') {
+      this._tryPlaceTree();
+    } else if (phase === 'lamps') {
+      this._tryPlaceLamp();
     }
   };
 
@@ -676,8 +741,512 @@
     this.ui.setHint(this.tasks.hint);
     this.ui.speakCount(result.count);
     if (result.completed) {
-      this._completeTask(5, this.tasks.level.rewardFinishTitle, this.tasks.level.rewardFinishText, 'free');
+      this._completeTask(5, this.tasks.level.rewardFinishTitle, this.tasks.level.rewardFinishText, 'grade');
     }
+  };
+
+  Game.prototype._parkIdleMachines = function () {
+    this.excavator.group.position.set(-7.2, 0, 7.4);
+    this.mixer.group.position.set(-16.5, 0, 8.5);
+  };
+
+  Game.prototype._beginGradePhase = function () {
+    this._cameraFocus = 'vehicle';
+    this.camPitch = 0.24;
+    this._parkIdleMachines();
+    this.crane.group.position.set(0, 0, -11.2);
+    this.dumpTruck.group.position.set(16.5, 0, 12);
+    this.roller.group.position.set(22.8, 0, 13.2);
+    this.bulldozer.group.position.set(9.6, 0, 11.4);
+    this.bulldozer.group.rotation.y = -Math.PI / 2;
+    this.activeVehicle = this.bulldozer;
+    this.tasks.startGradePhase();
+    this.wasNearAction = false;
+    this.idleTime = 0;
+    this.site.setGradeMode();
+    this.ui.setAction('🚧', 'ТОЛКАТЬ');
+    this.ui.setHint(this.tasks.level.hintGrade);
+    this.ui.speak(this.tasks.level.voiceGrade);
+  };
+
+  Game.prototype._tryGrade = function () {
+    if (!this._isNearWorkZone()) {
+      this.ui.setHint(this.tasks.level.hintGradeCloser);
+      this.ui.speak(this.tasks.level.hintGradeCloser, { throttleMs: 4500 });
+      return;
+    }
+    var self = this;
+    this.bulldozer.onPushed = function () {
+      self._handleGrade();
+    };
+    if (!this.bulldozer.tryPush()) {
+      return;
+    }
+    this.audio.play('dig');
+    this.idleTime = 0;
+  };
+
+  Game.prototype._handleGrade = function () {
+    var result = this.tasks.registerSuccessfulGrade();
+    if (!result.counted) {
+      return;
+    }
+    this.site.clearNextMound();
+    this.ui.showCount(result.count);
+    this.ui.setHint(this.tasks.hint);
+    this.ui.speakCount(result.count);
+    if (result.completed) {
+      this._completeTask(6, this.tasks.level.rewardGradeTitle, this.tasks.level.rewardGradeText, 'gravel');
+    }
+  };
+
+  Game.prototype._beginGravelPhase = function () {
+    this._cameraFocus = 'vehicle';
+    this.camPitch = 0.24;
+    this._parkIdleMachines();
+    this.bulldozer.group.position.set(20.5, 0, 16.5);
+    this.dumpTruck.group.position.set(6.4, 0, 14.2);
+    this.dumpTruck.group.rotation.y = Math.PI;
+    this.activeVehicle = this.dumpTruck;
+    this.tasks.startGravelLoadPhase();
+    this.wasNearAction = false;
+    this.idleTime = 0;
+    this.site.setGravelLoadMode();
+    this.ui.setAction('📦', 'ЗАГРУЗИТЬ');
+    this.ui.setHint(this.tasks.level.hintGravel);
+    this.ui.speak(this.tasks.level.voiceGravel);
+  };
+
+  Game.prototype._tryGravelLoad = function () {
+    if (!this.site.isInGravelZone(this.dumpTruck.position.x, this.dumpTruck.position.z)) {
+      this.ui.setHint(this.tasks.level.hintGravelCloser);
+      this.ui.speak(this.tasks.level.hintGravelCloser, { throttleMs: 4500 });
+      return;
+    }
+    if (!this.dumpTruck.tryLoad()) {
+      return;
+    }
+    this.audio.play('load');
+    this.idleTime = 0;
+    this.site.takeGravel();
+    var result = this.tasks.registerSuccessfulGravelLoad();
+    if (!result.counted) {
+      return;
+    }
+    this.ui.showCount(result.count);
+    this.ui.setHint(this.tasks.hint);
+    this.ui.speakCount(result.count);
+    if (result.completed) {
+      this.ui.speak(this.tasks.level.voiceGravelHaul, { queue: true });
+      this.site.setGravelUnloadMode();
+      this.ui.setAction('⬇️', 'ВЫГРУЗИТЬ');
+      this.wasNearAction = false;
+    }
+  };
+
+  Game.prototype._tryGravelUnload = function () {
+    if (!this._isNearWorkZone()) {
+      this.ui.setHint(this.tasks.level.hintGravelUnloadCloser);
+      this.ui.speak(this.tasks.level.hintGravelUnloadCloser, { throttleMs: 4500 });
+      return;
+    }
+    var self = this;
+    this.dumpTruck.onUnloaded = function () {
+      self._handleGravelUnload();
+    };
+    if (this.dumpTruck.tryUnload()) {
+      this.audio.play('unload');
+      this.idleTime = 0;
+    }
+  };
+
+  Game.prototype._handleGravelUnload = function () {
+    var result = this.tasks.registerSuccessfulGravelUnload();
+    if (!result.counted) {
+      return;
+    }
+    this.site.placeRoadGravel();
+    this.ui.setHint(this.tasks.hint);
+    this._completeTask(7, this.tasks.level.rewardGravelTitle, this.tasks.level.rewardGravelText, 'roll');
+  };
+
+  Game.prototype._beginRollPhase = function () {
+    this._cameraFocus = 'vehicle';
+    this.camPitch = 0.24;
+    this._parkIdleMachines();
+    this.dumpTruck.group.position.set(16.5, 0, 12);
+    this.roller.group.position.set(9.6, 0, 11.2);
+    this.roller.group.rotation.y = -Math.PI / 2;
+    this.activeVehicle = this.roller;
+    this.tasks.startRollPhase();
+    this.wasNearAction = false;
+    this.idleTime = 0;
+    this.site.setRollMode();
+    this.ui.setAction('🛞', 'КАТИТЬ');
+    this.ui.setHint(this.tasks.level.hintRoll);
+    this.ui.speak(this.tasks.level.voiceRoll);
+  };
+
+  Game.prototype._tryRoll = function () {
+    if (!this._isNearWorkZone()) {
+      this.ui.setHint(this.tasks.level.hintRollCloser);
+      this.ui.speak(this.tasks.level.hintRollCloser, { throttleMs: 4500 });
+      return;
+    }
+    var self = this;
+    this.roller.onRolled = function () {
+      self._handleRoll();
+    };
+    if (!this.roller.tryRoll()) {
+      return;
+    }
+    this.audio.play('unload');
+    this.idleTime = 0;
+  };
+
+  Game.prototype._handleRoll = function () {
+    var result = this.tasks.registerSuccessfulRoll();
+    if (!result.counted) {
+      return;
+    }
+    this.site.placeNextRoad();
+    this.ui.showCount(result.count);
+    this.ui.setHint(this.tasks.hint);
+    this.ui.speakCount(result.count);
+    if (result.completed) {
+      this._completeTask(8, this.tasks.level.rewardRollTitle, this.tasks.level.rewardRollText, 'bridge');
+    }
+  };
+
+  Game.prototype._beginBridgePhase = function () {
+    this._cameraFocus = 'vehicle';
+    this.camPitch = 0.24;
+    this._parkIdleMachines();
+    this.roller.group.position.set(22.8, 0, 13.2);
+    this.crane.group.position.set(18.4, 0, 10.8);
+    this.crane.group.rotation.y = -Math.PI / 2;
+    this.activeVehicle = this.crane;
+    this.tasks.startBridgePhase();
+    this.wasNearAction = false;
+    this.idleTime = 0;
+    this.site.setBridgeMode();
+    this.ui.setAction('🌉', 'УСТАНОВИТЬ');
+    this.ui.setHint(this.tasks.level.hintBridge);
+    this.ui.speak(this.tasks.level.voiceBridge);
+  };
+
+  Game.prototype._tryPlaceBridge = function () {
+    if (!this._isNearWorkZone()) {
+      this.ui.setHint(this.tasks.level.hintBridgeCloser);
+      this.ui.speak(this.tasks.level.hintBridgeCloser, { throttleMs: 4500 });
+      return;
+    }
+    var pile = this.site.bridgePileSpot;
+    var spot = this.site.currentBridgeSpot();
+    this.crane.setCarriedPart('block');
+    this.crane.setCarriedColor(this.site.nextBridgeColor());
+    this.crane.pickX = pile.x;
+    this.crane.pickZ = pile.z;
+    this.crane.placeX = spot.x;
+    this.crane.placeZ = spot.z;
+    if (!this.crane.tryPlace()) {
+      return;
+    }
+    this.audio.play('crane');
+    this.idleTime = 0;
+    var self = this;
+    this.crane.onPicked = function () {
+      self.site.hideNextBridgePart();
+    };
+    this.crane.onPlaced = function () {
+      self._handleBridge();
+    };
+  };
+
+  Game.prototype._handleBridge = function () {
+    var result = this.tasks.registerSuccessfulBridge();
+    if (!result.counted) {
+      return;
+    }
+    this.site.placeNextBridge();
+    this.ui.showCount(result.count);
+    this.ui.setHint(this.tasks.hint);
+    this.ui.speakCount(result.count);
+    if (result.completed) {
+      this._completeTask(9, this.tasks.level.rewardBridgeTitle, this.tasks.level.rewardBridgeText, 'play');
+    }
+  };
+
+  Game.prototype._beginPlayPhase = function () {
+    this._cameraFocus = 'vehicle';
+    this.camPitch = 0.24;
+    this._parkIdleMachines();
+    this.dumpTruck.group.position.set(16.5, 0, 9);
+    this.crane.group.position.set(-10.2, 0, -12.4);
+    this.crane.group.rotation.y = Math.PI;
+    this.activeVehicle = this.crane;
+    this.tasks.startPlayPhase();
+    this.wasNearAction = false;
+    this.idleTime = 0;
+    this.site.setPlaygroundMode();
+    this.ui.setAction('🎠', 'УСТАНОВИТЬ');
+    this.ui.setHint(this.tasks.level.hintPlay);
+    this.ui.speak(this.tasks.level.voicePlayground);
+  };
+
+  Game.prototype._tryPlacePlay = function () {
+    if (!this._isNearWorkZone()) {
+      this.ui.setHint(this.tasks.level.hintPlayCloser);
+      this.ui.speak(this.tasks.level.hintPlayCloser, { throttleMs: 4500 });
+      return;
+    }
+    var pile = this.site.playPileSpot;
+    var spot = this.site.currentPlaySpot();
+    this.crane.setCarriedPart('block');
+    this.crane.setCarriedColor(this.site.nextPlayColor());
+    this.crane.pickX = pile.x;
+    this.crane.pickZ = pile.z;
+    this.crane.placeX = spot.x;
+    this.crane.placeZ = spot.z;
+    if (!this.crane.tryPlace()) {
+      return;
+    }
+    this.audio.play('crane');
+    this.idleTime = 0;
+    var self = this;
+    this.crane.onPicked = function () {
+      self.site.hideNextPlayPart();
+    };
+    this.crane.onPlaced = function () {
+      self._handlePlay();
+    };
+  };
+
+  Game.prototype._handlePlay = function () {
+    var result = this.tasks.registerSuccessfulPlay();
+    if (!result.counted) {
+      return;
+    }
+    this.site.placeNextPlayItem();
+    this.ui.showCount(result.count);
+    this.ui.setHint(this.tasks.hint);
+    this.ui.speakCount(result.count);
+    if (result.completed) {
+      this._completeTask(10, this.tasks.level.rewardPlayTitle, this.tasks.level.rewardPlayText, 'benches');
+    }
+  };
+
+  Game.prototype._beginBenchPhase = function () {
+    this._cameraFocus = 'vehicle';
+    this.activeVehicle = this.crane;
+    this.tasks.startBenchPhase();
+    this.wasNearAction = false;
+    this.idleTime = 0;
+    this.site.setBenchMode();
+    this.ui.setAction('🪑', 'УСТАНОВИТЬ');
+    this.ui.setHint(this.tasks.level.hintBenches);
+    this.ui.speak(this.tasks.level.voiceBenches);
+  };
+
+  Game.prototype._tryPlaceBench = function () {
+    if (!this._isNearWorkZone()) {
+      this.ui.setHint(this.tasks.level.hintBenchesCloser);
+      this.ui.speak(this.tasks.level.hintBenchesCloser, { throttleMs: 4500 });
+      return;
+    }
+    var spot = this.site.currentBenchSpot();
+    this.crane.setCarriedPart('block');
+    this.crane.setCarriedColor(0x8d6e63);
+    this.crane.pickX = this.site.playPileSpot.x;
+    this.crane.pickZ = this.site.playPileSpot.z;
+    this.crane.placeX = spot.x;
+    this.crane.placeZ = spot.z;
+    if (!this.crane.tryPlace()) {
+      return;
+    }
+    this.audio.play('crane');
+    this.idleTime = 0;
+    var self = this;
+    this.crane.onPlaced = function () {
+      self._handleBench();
+    };
+  };
+
+  Game.prototype._handleBench = function () {
+    var result = this.tasks.registerSuccessfulBench();
+    if (!result.counted) {
+      return;
+    }
+    this.site.placeNextBench();
+    this.ui.showCount(result.count);
+    this.ui.setHint(this.tasks.hint);
+    this.ui.speakCount(result.count);
+    if (result.completed) {
+      this._completeTask(11, this.tasks.level.rewardBenchesTitle, this.tasks.level.rewardBenchesText, 'trees');
+    }
+  };
+
+  Game.prototype._beginTreePhase = function () {
+    this._cameraFocus = 'vehicle';
+    this.activeVehicle = this.crane;
+    this.tasks.startTreePhase();
+    this.wasNearAction = false;
+    this.idleTime = 0;
+    this.site.setTreeMode();
+    this.ui.setAction('🌳', 'ПОСАДИТЬ');
+    this.ui.setHint(this.tasks.level.hintTrees);
+    this.ui.speak(this.tasks.level.voiceTrees);
+  };
+
+  Game.prototype._tryPlaceTree = function () {
+    if (!this._isNearWorkZone()) {
+      this.ui.setHint(this.tasks.level.hintTreesCloser);
+      this.ui.speak(this.tasks.level.hintTreesCloser, { throttleMs: 4500 });
+      return;
+    }
+    var spot = this.site.currentTreeSpot();
+    this.crane.setCarriedPart('block');
+    this.crane.setCarriedColor(0x66bb6a);
+    this.crane.pickX = this.site.playPileSpot.x;
+    this.crane.pickZ = this.site.playPileSpot.z;
+    this.crane.placeX = spot.x;
+    this.crane.placeZ = spot.z;
+    if (!this.crane.tryPlace()) {
+      return;
+    }
+    this.audio.play('crane');
+    this.idleTime = 0;
+    var self = this;
+    this.crane.onPlaced = function () {
+      self._handleTree();
+    };
+  };
+
+  Game.prototype._handleTree = function () {
+    var result = this.tasks.registerSuccessfulTree();
+    if (!result.counted) {
+      return;
+    }
+    this.site.placeNextTree();
+    this.ui.showCount(result.count);
+    this.ui.setHint(this.tasks.hint);
+    this.ui.speakCount(result.count);
+    if (result.completed) {
+      this._completeTask(12, this.tasks.level.rewardTreesTitle, this.tasks.level.rewardTreesText, 'lamps');
+    }
+  };
+
+  Game.prototype._beginLampPhase = function () {
+    this._cameraFocus = 'vehicle';
+    this.activeVehicle = this.crane;
+    this.tasks.startLampPhase();
+    this.wasNearAction = false;
+    this.idleTime = 0;
+    this.site.setLampMode();
+    this.ui.setAction('💡', 'УСТАНОВИТЬ');
+    this.ui.setHint(this.tasks.level.hintLamps);
+    this.ui.speak(this.tasks.level.voiceLamps);
+  };
+
+  Game.prototype._tryPlaceLamp = function () {
+    if (!this._isNearWorkZone()) {
+      this.ui.setHint(this.tasks.level.hintLampsCloser);
+      this.ui.speak(this.tasks.level.hintLampsCloser, { throttleMs: 4500 });
+      return;
+    }
+    var spot = this.site.currentLampSpot();
+    this.crane.setCarriedPart('block');
+    this.crane.setCarriedColor(0xffee58);
+    this.crane.pickX = this.site.playPileSpot.x;
+    this.crane.pickZ = this.site.playPileSpot.z;
+    this.crane.placeX = spot.x;
+    this.crane.placeZ = spot.z;
+    if (!this.crane.tryPlace()) {
+      return;
+    }
+    this.audio.play('crane');
+    this.idleTime = 0;
+    var self = this;
+    this.crane.onPlaced = function () {
+      self._handleLamp();
+    };
+  };
+
+  Game.prototype._handleLamp = function () {
+    var result = this.tasks.registerSuccessfulLamp();
+    if (!result.counted) {
+      return;
+    }
+    this.site.placeNextLamp();
+    this.ui.showCount(result.count);
+    this.ui.setHint(this.tasks.hint);
+    this.ui.speakCount(result.count);
+    if (result.completed) {
+      this._completeTask(13, this.tasks.level.rewardLampsTitle, this.tasks.level.rewardLampsText, 'free');
+    }
+  };
+
+  Game.prototype._beginMathPhase = function () {
+    this.paused = true;
+    this.input.reset();
+    this._cameraFocus = 'vehicle';
+    this.mathIndex = 0;
+    this.tasks.startMathPhase();
+    this.ui.setHint(this.tasks.level.hintMath);
+    this._showCurrentMath();
+  };
+
+  Game.prototype._showCurrentMath = function () {
+    var questions = MBS.MATH_QUESTIONS || [];
+    var question = questions[this.mathIndex];
+    if (!question) {
+      this._finishMath();
+      return;
+    }
+    this.ui.showMath(question, this.mathIndex, questions.length);
+  };
+
+  Game.prototype._handleMathAnswer = function (value, question, button) {
+    if (value !== question.answer) {
+      this.ui.markMathWrong();
+      return;
+    }
+    this.ui.markMathRight(button);
+    this.idleTime = 0;
+    if (question.speakNumber && typeof question.answer === 'number') {
+      this.ui.showCount(question.answer);
+      this.ui.speakCount(question.answer);
+    } else {
+      this.ui.speak('Молодец!');
+    }
+    var self = this;
+    window.setTimeout(function () {
+      self.mathIndex += 1;
+      if (self.mathIndex >= (MBS.MATH_QUESTIONS || []).length) {
+        self._finishMath();
+      } else {
+        self._showCurrentMath();
+      }
+    }, 900);
+  };
+
+  Game.prototype._finishMath = function () {
+    this.ui.hideMath();
+    this._completeTask(
+      20,
+      this.tasks.level.rewardMathTitle,
+      this.tasks.level.rewardMathText,
+      this.mathFromMenu ? 'menu' : 'free',
+    );
+  };
+
+  Game.prototype._returnToMenu = function () {
+    this.playing = false;
+    this.paused = false;
+    this.mathFromMenu = false;
+    this.ui.hideMath();
+    this.ui.showStart();
+    this.ui.setHint('Нажми ИГРАТЬ');
   };
 
   Game.prototype._isNearDigZone = function () {
@@ -697,9 +1266,21 @@
     return this.site.isInDumpZone(pos.x, pos.z);
   };
 
+  Game.prototype._isNearWorkZone = function () {
+    var pos = this.activeVehicle.position;
+    return this.site.isInWorkZone(pos.x, pos.z);
+  };
+
   Game.prototype._obstaclesFor = function (mover) {
     var obstacles = [];
-    var vehicles = [this.excavator, this.dumpTruck, this.mixer, this.crane];
+    var vehicles = [
+      this.excavator,
+      this.dumpTruck,
+      this.mixer,
+      this.crane,
+      this.bulldozer,
+      this.roller,
+    ];
     var i;
     for (i = 0; i < vehicles.length; i += 1) {
       var other = vehicles[i];
@@ -732,6 +1313,19 @@
       ready = this._isNearDigZone();
     } else if (phase === 'unload') {
       ready = this._isNearDumpZone();
+    } else if (phase === 'gravelLoad') {
+      ready = this.site.isInGravelZone(this.dumpTruck.position.x, this.dumpTruck.position.z);
+    } else if (
+      phase === 'grade' ||
+      phase === 'gravelUnload' ||
+      phase === 'roll' ||
+      phase === 'bridge' ||
+      phase === 'play' ||
+      phase === 'benches' ||
+      phase === 'trees' ||
+      phase === 'lamps'
+    ) {
+      ready = this._isNearWorkZone();
     }
     this.ui.setNearDigZone(ready);
     if (ready && !this.wasNearAction && this.playing && !this.paused) {
@@ -765,6 +1359,33 @@
     if (phase === 'finish') {
       return level.voiceReadyFinish;
     }
+    if (phase === 'grade') {
+      return level.voiceReadyGrade;
+    }
+    if (phase === 'gravelLoad') {
+      return level.voiceReadyGravel;
+    }
+    if (phase === 'gravelUnload') {
+      return level.voiceReadyGravelUnload;
+    }
+    if (phase === 'roll') {
+      return level.voiceReadyRoll;
+    }
+    if (phase === 'bridge') {
+      return level.voiceReadyBridge;
+    }
+    if (phase === 'play') {
+      return level.voiceReadyPlay;
+    }
+    if (phase === 'benches') {
+      return level.voiceReadyBenches;
+    }
+    if (phase === 'trees') {
+      return level.voiceReadyTrees;
+    }
+    if (phase === 'lamps') {
+      return level.voiceReadyLamps;
+    }
     return '';
   };
 
@@ -790,6 +1411,36 @@
     if (phase === 'finish') {
       return ready ? level.voiceReadyFinish : level.voiceCoachFinish;
     }
+    if (phase === 'grade') {
+      return ready ? level.voiceReadyGrade : level.voiceCoachGrade;
+    }
+    if (phase === 'gravelLoad') {
+      return ready ? level.voiceReadyGravel : level.voiceCoachGravel;
+    }
+    if (phase === 'gravelUnload') {
+      return ready ? level.voiceReadyGravelUnload : level.voiceCoachGravelUnload;
+    }
+    if (phase === 'roll') {
+      return ready ? level.voiceReadyRoll : level.voiceCoachRoll;
+    }
+    if (phase === 'bridge') {
+      return ready ? level.voiceReadyBridge : level.voiceCoachBridge;
+    }
+    if (phase === 'play') {
+      return ready ? level.voiceReadyPlay : level.voiceCoachPlay;
+    }
+    if (phase === 'benches') {
+      return ready ? level.voiceReadyBenches : level.voiceCoachBenches;
+    }
+    if (phase === 'trees') {
+      return ready ? level.voiceReadyTrees : level.voiceCoachTrees;
+    }
+    if (phase === 'lamps') {
+      return ready ? level.voiceReadyLamps : level.voiceCoachLamps;
+    }
+    if (phase === 'math') {
+      return level.voiceMath;
+    }
     if (phase === 'free' || phase === 'done') {
       return level.voiceFree;
     }
@@ -799,7 +1450,12 @@
   Game.prototype._updateCoach = function (dt) {
     var moving = this.input.forward || this.input.back || this.input.left || this.input.right;
     var busy =
-      this.excavator.digging || this.dumpTruck.busy || this.mixer.busy || this.crane.busy;
+      this.excavator.digging ||
+      this.dumpTruck.busy ||
+      this.mixer.busy ||
+      this.crane.busy ||
+      this.bulldozer.busy ||
+      this.roller.busy;
     if (moving || busy) {
       this.idleTime = 0;
       return;
@@ -823,12 +1479,18 @@
       kind = 'mixer';
     } else if (vehicle === this.crane) {
       kind = 'crane';
+    } else if (vehicle === this.bulldozer) {
+      kind = 'bulldozer';
+    } else if (vehicle === this.roller) {
+      kind = 'roller';
     }
     var busy =
       (vehicle === this.excavator && vehicle.digging) ||
       (vehicle === this.dumpTruck && vehicle.busy) ||
       (vehicle === this.mixer && vehicle.busy) ||
-      (vehicle === this.crane && vehicle.busy);
+      (vehicle === this.crane && vehicle.busy) ||
+      (vehicle === this.bulldozer && vehicle.busy) ||
+      (vehicle === this.roller && vehicle.busy);
     if (this.paused && !busy) {
       power = 0;
     }
@@ -845,6 +1507,8 @@
   Game.prototype._beginFreeRoam = function () {
     this._cameraFocus = 'vehicle';
     this.camPitch = 0.24;
+    this.tasks.startFreePhase();
+    this.site.setFreeMode();
     this.ui.setHint(this.tasks.level.hintFree);
     this.ui.speak(this.tasks.level.voiceFree);
     this.ui.setAction('👋', 'ПРИВЕТ');
@@ -858,8 +1522,12 @@
       this.activeVehicle = this.dumpTruck;
     } else if (name === 'mixer') {
       this.activeVehicle = this.mixer;
-    } else {
+    } else if (name === 'crane') {
       this.activeVehicle = this.crane;
+    } else if (name === 'bulldozer') {
+      this.activeVehicle = this.bulldozer;
+    } else if (name === 'roller') {
+      this.activeVehicle = this.roller;
     }
     this.ui.setVehicleActive(name);
     this.idleTime = 0;

@@ -60,6 +60,8 @@
           <button type="button" class="vehicle-btn" data-vehicle="dumpTruck" aria-label="Самосвал">🚛</button>
           <button type="button" class="vehicle-btn" data-vehicle="mixer" aria-label="Бетономешалка">🌀</button>
           <button type="button" class="vehicle-btn" data-vehicle="crane" aria-label="Кран">🏗️</button>
+          <button type="button" class="vehicle-btn" data-vehicle="bulldozer" aria-label="Бульдозер">🚧</button>
+          <button type="button" class="vehicle-btn" data-vehicle="roller" aria-label="Каток">🛞</button>
         </div>
       </div>
 
@@ -73,12 +75,25 @@
         </div>
       </div>
 
+      <div id="math-screen" hidden>
+        <div class="math-card">
+          <p class="reward-badge">Математика на стройке</p>
+          <p id="math-progress">1 / 5</p>
+          <h2 id="math-prompt">Сколько звёзд?</h2>
+          <div id="math-visual" aria-hidden="true"></div>
+          <div id="math-choices"></div>
+        </div>
+      </div>
+
       <div id="start-screen">
         <div class="start-card">
           <p class="start-badge">Игра для детей 4–5 лет</p>
           <h1>МОЯ БОЛЬШАЯ СТРОЙКА</h1>
-          <p class="start-sub">Управляй экскаватором и выкопай яму для дома</p>
-          <button type="button" id="btn-play">🏗️ ИГРАТЬ</button>
+          <p class="start-sub">Построй дом, дорогу, мост и площадку</p>
+          <div class="start-actions">
+            <button type="button" id="btn-play">🏗️ ИГРАТЬ</button>
+            <button type="button" id="btn-math">🔢 МАТЕМАТИКА</button>
+          </div>
         </div>
       </div>
 

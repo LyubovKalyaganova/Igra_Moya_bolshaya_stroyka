@@ -213,6 +213,7 @@ body {
 .ctrl-btn,
 #btn-dig,
 #btn-play,
+#btn-math,
 #btn-next {
   border: 0;
   cursor: pointer;
@@ -279,6 +280,9 @@ body {
   transform: translateX(-50%);
   gap: 10px;
   z-index: 3;
+  flex-wrap: wrap;
+  width: calc(var(--ctrl) * 2.9 + 20px);
+  justify-content: center;
 }
 
 #vehicle-bar.is-visible {
@@ -366,6 +370,13 @@ body {
   font-size: clamp(16px, 3.2vw, 24px);
 }
 
+.start-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
 #btn-play {
   min-width: min(260px, 100%);
   min-height: clamp(64px, 12vw, 84px);
@@ -379,6 +390,21 @@ body {
 #btn-play:active {
   transform: translateY(6px);
   box-shadow: 0 4px 0 #e09100;
+}
+
+#btn-math {
+  min-width: min(260px, 100%);
+  min-height: clamp(56px, 10vw, 72px);
+  padding: 0 24px;
+  border-radius: 28px;
+  background: #c8e6c9;
+  box-shadow: 0 10px 0 #2e7d32;
+  font-size: clamp(20px, 4.2vw, 28px);
+}
+
+#btn-math:active {
+  transform: translateY(6px);
+  box-shadow: 0 4px 0 #2e7d32;
 }
 
 #reward-screen {
@@ -536,6 +562,106 @@ body {
   box-shadow: 0 4px 0 #e09100;
 }
 
+#math-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 7;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--safe-top) + 12px) calc(var(--safe-right) + 12px) calc(var(--safe-bottom) + 12px) calc(var(--safe-left) + 12px);
+  background: rgba(20, 40, 70, 0.42);
+  pointer-events: auto;
+}
+
+#math-screen.is-visible {
+  display: flex;
+}
+
+.math-card {
+  width: min(640px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  background: var(--white);
+  border-radius: clamp(24px, 5vw, 40px);
+  box-shadow: 0 22px 0 rgba(0, 0, 0, 0.14);
+  padding: clamp(16px, 3.5vw, 28px) clamp(16px, 3.5vw, 28px) clamp(18px, 3.5vw, 30px);
+  text-align: center;
+  animation: reward-card-in 0.45s ease;
+}
+
+#math-progress {
+  margin: 0 0 8px;
+  color: #ef6c00;
+  font-size: clamp(16px, 2.8vw, 22px);
+  font-weight: 700;
+}
+
+#math-prompt {
+  margin: 0 0 8px;
+  font-size: clamp(22px, 4.2vw, 34px);
+  line-height: 1.2;
+}
+
+#math-visual {
+  min-height: clamp(56px, 12vw, 88px);
+  margin: 4px 0 16px;
+  font-size: clamp(36px, 8vw, 64px);
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+
+#math-choices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.math-choice {
+  min-width: clamp(92px, 22vw, 148px);
+  min-height: clamp(72px, 14vw, 108px);
+  padding: 8px 16px;
+  border: 4px solid #ffc107;
+  border-radius: 28px;
+  background: #fff8e1;
+  box-shadow: 0 8px 0 #e09100;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: clamp(28px, 6vw, 48px);
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.math-choice:active {
+  transform: translateY(5px);
+  box-shadow: 0 3px 0 #e09100;
+}
+
+.math-choice.is-good {
+  background: #c8e6c9;
+  border-color: #43a047;
+  box-shadow: 0 8px 0 #2e7d32;
+}
+
+#math-choices.is-shake {
+  animation: math-shake 0.38s ease;
+}
+
+@keyframes math-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-12px);
+  }
+  75% {
+    transform: translateX(12px);
+  }
+}
+
 @media (max-width: 900px) {
   :root {
     --ctrl: clamp(60px, 12vw, 78px);
@@ -628,7 +754,8 @@ body {
   }
 
   .start-card,
-  .reward-card {
+  .reward-card,
+  .math-card {
     padding: 14px 18px 16px;
   }
 
@@ -655,7 +782,10 @@ body {
     top: auto;
     bottom: calc(var(--safe-bottom) + var(--pad));
     transform: none;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: calc(var(--ctrl) * 1.92 + 10px);
+    justify-content: flex-start;
     gap: 8px;
   }
 }

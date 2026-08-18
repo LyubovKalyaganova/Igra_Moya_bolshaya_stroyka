@@ -3,6 +3,7 @@
     this.root = root;
     this.startScreen = root.querySelector('#start-screen');
     this.playButton = root.querySelector('#btn-play');
+    this.mathButton = root.querySelector('#btn-math');
     this.hintEl = root.querySelector('#hint');
     this.starsEl = root.querySelector('#stars');
     this.countEl = root.querySelector('#count-pop');
@@ -20,6 +21,12 @@
     this.muteButton = root.querySelector('#btn-mute');
     this.volDownButton = root.querySelector('#btn-vol-down');
     this.volUpButton = root.querySelector('#btn-vol-up');
+    this.mathScreen = root.querySelector('#math-screen');
+    this.mathProgress = root.querySelector('#math-progress');
+    this.mathPrompt = root.querySelector('#math-prompt');
+    this.mathVisual = root.querySelector('#math-visual');
+    this.mathChoices = root.querySelector('#math-choices');
+    this.mathLocked = false;
     this.audio = null;
     this.onPlay = null;
     this.onNext = null;
@@ -27,6 +34,8 @@
     this.onDigRelease = null;
     this.onMoveChange = null;
     this.onVehiclePick = null;
+    this.onMathPlay = null;
+    this.onMathAnswer = null;
   }
 
   GameUI.prototype.bind = function () {
@@ -38,6 +47,15 @@
         self.onPlay();
       }
     });
+
+    if (this.mathButton) {
+      this.mathButton.addEventListener('click', function () {
+        self.hideStart();
+        if (self.onMathPlay) {
+          self.onMathPlay();
+        }
+      });
+    }
 
     this.nextButton.addEventListener('click', function () {
       self.hideReward();
@@ -135,6 +153,14 @@
     this.startScreen.setAttribute('aria-hidden', 'true');
   };
 
+  GameUI.prototype.showStart = function () {
+    this.hideMath();
+    this.hideVehicleBar();
+    this.startScreen.classList.remove('is-hidden');
+    this.startScreen.removeAttribute('hidden');
+    this.startScreen.setAttribute('aria-hidden', 'false');
+  };
+
   GameUI.prototype.setHint = function (text) {
     this.hintEl.textContent = text;
   };
@@ -194,6 +220,11 @@
     this.setVehicleActive(activeName || 'crane');
   };
 
+  GameUI.prototype.hideVehicleBar = function () {
+    this.vehicleBar.classList.remove('is-visible');
+    this.vehicleBar.setAttribute('hidden', '');
+  };
+
   GameUI.prototype.setVehicleActive = function (name) {
     this.vehicleButtons.forEach(function (button) {
       button.classList.toggle('is-active', button.getAttribute('data-vehicle') === name);
@@ -210,6 +241,56 @@
     if (this.audio) {
       this.audio.speak(text, options);
     }
+  };
+
+  GameUI.prototype.showMath = function (question, index, total) {
+    var self = this;
+    this.mathLocked = false;
+    this.mathProgress.textContent = index + 1 + ' / ' + total;
+    this.mathPrompt.textContent = question.prompt;
+    this.mathVisual.textContent = question.visual || '';
+    this.mathChoices.innerHTML = '';
+    this.mathChoices.classList.remove('is-shake');
+
+    question.choices.forEach(function (choice) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'math-choice';
+      button.textContent = choice.label;
+      button.addEventListener('click', function () {
+        if (self.mathLocked) {
+          return;
+        }
+        if (self.onMathAnswer) {
+          self.onMathAnswer(choice.value, question, button);
+        }
+      });
+      self.mathChoices.appendChild(button);
+    });
+
+    this.mathScreen.removeAttribute('hidden');
+    this.mathScreen.classList.add('is-visible');
+    this.speak(question.voice);
+  };
+
+  GameUI.prototype.markMathWrong = function () {
+    this.mathChoices.classList.remove('is-shake');
+    void this.mathChoices.offsetWidth;
+    this.mathChoices.classList.add('is-shake');
+    this.speak('Попробуй ещё, дружок!', { throttleMs: 2200 });
+  };
+
+  GameUI.prototype.markMathRight = function (button) {
+    this.mathLocked = true;
+    if (button) {
+      button.classList.add('is-good');
+    }
+  };
+
+  GameUI.prototype.hideMath = function () {
+    this.mathScreen.classList.remove('is-visible');
+    this.mathScreen.setAttribute('hidden', '');
+    this.mathLocked = false;
   };
 
   MBS.GameUI = GameUI;

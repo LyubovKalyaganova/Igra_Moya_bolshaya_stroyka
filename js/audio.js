@@ -938,6 +938,18 @@
       whine = 360;
       filter = 980;
       noise = 0.02;
+    } else if (kind === 'bulldozer') {
+      base = 32;
+      high = 48;
+      whine = 62;
+      filter = 150;
+      noise = 0.1;
+    } else if (kind === 'roller') {
+      base = 44;
+      high = 68;
+      whine = 86;
+      filter = 190;
+      noise = 0.09;
     }
     if (kind !== this._engineKind) {
       this._engineKind = kind;
@@ -953,6 +965,10 @@
         this.engineOscA.type = 'sine';
         this.engineOscB.type = 'triangle';
         this.engineOscC.type = 'sine';
+      } else if (kind === 'bulldozer' || kind === 'roller') {
+        this.engineOscA.type = 'sawtooth';
+        this.engineOscB.type = 'square';
+        this.engineOscC.type = 'sawtooth';
       } else {
         this.engineOscA.type = 'sawtooth';
         this.engineOscB.type = 'triangle';

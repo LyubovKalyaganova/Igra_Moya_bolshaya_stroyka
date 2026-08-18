@@ -375,6 +375,7 @@
     this.mode = 'idle';
     this.onLoaded = null;
     this.onUnloaded = null;
+    this.onPaved = null;
 
     this._build();
     this.group.position.set(10.4, 0, 0);
@@ -401,8 +402,12 @@
     this.actionTime += dt;
     var t = clamp(this.actionTime / this.actionDuration, 0, 1);
 
-    if (this.mode === 'load') {
+    if (this.mode === 'load' || this.mode === 'pave') {
       this.bedPivot.position.y = 1.18 + Math.sin(t * Math.PI) * 0.12;
+      if (t >= 0.45 && this.mode === 'pave' && this.onPaved) {
+        this.onPaved();
+        this.onPaved = null;
+      }
       if (t >= 1) {
         this.busy = false;
         this.mode = 'idle';
@@ -451,6 +456,18 @@
     this.mode = 'unload';
     this.actionTime = 0;
     this.actionDuration = 1.15;
+    this.velocity = 0;
+    return true;
+  };
+
+  DumpTruck.prototype.tryPave = function () {
+    if (this.busy) {
+      return false;
+    }
+    this.busy = true;
+    this.mode = 'load';
+    this.actionTime = 0;
+    this.actionDuration = 0.55;
     this.velocity = 0;
     return true;
   };
@@ -1019,8 +1036,273 @@
     this.carried.add(this.carriedRoof);
   };
 
+  function Bulldozer(scene) {
+    this.group = new THREE.Group();
+    this.speed = 6.4;
+    this.reverseSpeed = 4.2;
+    this.turnSpeed = 1.85;
+    this.radius = 2.25;
+    this.velocity = 0;
+    this.wheels = [];
+    this.busy = false;
+    this.actionTime = 0;
+    this.actionDuration = 0.7;
+    this.onPushed = null;
+
+    this._build();
+    this.group.position.set(20.5, 0, 16.5);
+    this.group.rotation.y = Math.PI;
+    scene.add(this.group);
+  }
+
+  Object.defineProperty(Bulldozer.prototype, 'position', {
+    get: function () {
+      return this.group.position;
+    },
+  });
+
+  Bulldozer.prototype.update = function (dt, input, bounds, obstacles) {
+    if (!this.busy) {
+      driveGroup(this, input, bounds, dt, obstacles);
+    }
+    spinWheels(this.wheels, this.velocity, dt);
+    if (!this.busy) {
+      return;
+    }
+    this.actionTime += dt;
+    var t = clamp(this.actionTime / this.actionDuration, 0, 1);
+    this.blade.position.z = 2.05 + Math.sin(t * Math.PI) * 0.28;
+    this.blade.position.y = 0.72 - Math.sin(t * Math.PI) * 0.16;
+    if (t >= 0.45 && this.onPushed) {
+      this.onPushed();
+      this.onPushed = null;
+    }
+    if (t >= 1) {
+      this.busy = false;
+      this.blade.position.z = 2.05;
+      this.blade.position.y = 0.72;
+    }
+  };
+
+  Bulldozer.prototype.tryPush = function () {
+    if (this.busy) {
+      return false;
+    }
+    this.busy = true;
+    this.actionTime = 0;
+    this.velocity = 0;
+    return true;
+  };
+
+  Bulldozer.prototype._build = function () {
+    var yellow = 0xffc107;
+    var cabColor = 0xffb300;
+    var steel = 0x78909c;
+    var tire = 0x212121;
+
+    var chassis = boxMesh(1.85, 0.38, 3.15, 0x5d4037);
+    chassis.position.set(0, 0.62, 0);
+    this.group.add(chassis);
+
+    var self = this;
+    [-0.95, 0.95].forEach(function (x) {
+      [-1.05, 0.85].forEach(function (z) {
+        var wheel = cylinderMesh(0.42, 0.42, 0.46, tire, {}, 12);
+        wheel.rotation.z = Math.PI / 2;
+        wheel.position.set(x, 0.42, z);
+        self.group.add(wheel);
+        self.wheels.push(wheel);
+      });
+    });
+
+    var body = boxMesh(1.7, 0.85, 2.2, yellow);
+    body.position.set(0, 1.22, -0.15);
+    this.group.add(body);
+
+    var cab = boxMesh(1.45, 1.05, 1.2, cabColor);
+    cab.position.set(0, 1.95, -0.35);
+    this.group.add(cab);
+
+    var roof = boxMesh(1.55, 0.12, 1.3, 0xff8f00);
+    roof.position.set(0, 2.52, -0.35);
+    this.group.add(roof);
+
+    var windowFront = boxMesh(1.15, 0.48, 0.08, 0x81d4fa, {
+      roughness: 0.18,
+      metalness: 0.2,
+      transparent: true,
+      opacity: 0.88,
+    });
+    windowFront.position.set(0, 2.05, 0.28);
+    this.group.add(windowFront);
+
+    addCabSides(this.group, {
+      x: 0.76,
+      z: -0.35,
+      yWin: 2.08,
+      yDoor: 1.62,
+      winH: 0.38,
+      winD: 0.62,
+      doorH: 0.58,
+      doorD: 0.7,
+      doorColor: 0xffb300,
+    });
+
+    var eyeL = sphereMesh(0.1, 0xffffff);
+    eyeL.position.set(-0.22, 2.08, 0.3);
+    this.group.add(eyeL);
+    var eyeR = sphereMesh(0.1, 0xffffff);
+    eyeR.position.set(0.22, 2.08, 0.3);
+    this.group.add(eyeR);
+    var pupilL = sphereMesh(0.045, 0x263238);
+    pupilL.position.set(-0.22, 2.06, 0.38);
+    this.group.add(pupilL);
+    var pupilR = sphereMesh(0.045, 0x263238);
+    pupilR.position.set(0.22, 2.06, 0.38);
+    this.group.add(pupilR);
+
+    this.blade = new THREE.Group();
+    this.blade.position.set(0, 0.72, 2.05);
+    this.group.add(this.blade);
+    var bladeFace = boxMesh(2.35, 0.95, 0.16, steel);
+    this.blade.add(bladeFace);
+    var bladeLip = boxMesh(2.4, 0.14, 0.28, 0x546e7a);
+    bladeLip.position.y = -0.48;
+    this.blade.add(bladeLip);
+  };
+
+  function RoadRoller(scene) {
+    this.group = new THREE.Group();
+    this.speed = 5.8;
+    this.reverseSpeed = 3.8;
+    this.turnSpeed = 1.7;
+    this.radius = 2.2;
+    this.velocity = 0;
+    this.wheels = [];
+    this.busy = false;
+    this.actionTime = 0;
+    this.actionDuration = 0.75;
+    this.onRolled = null;
+
+    this._build();
+    this.group.position.set(22.8, 0, 13.2);
+    this.group.rotation.y = Math.PI;
+    scene.add(this.group);
+  }
+
+  Object.defineProperty(RoadRoller.prototype, 'position', {
+    get: function () {
+      return this.group.position;
+    },
+  });
+
+  RoadRoller.prototype.update = function (dt, input, bounds, obstacles) {
+    if (!this.busy) {
+      driveGroup(this, input, bounds, dt, obstacles);
+    }
+    spinWheels(this.wheels, this.velocity, dt);
+    if (this.drum) {
+      this.drum.rotation.x += this.velocity * dt * 1.4;
+    }
+    if (!this.busy) {
+      return;
+    }
+    this.actionTime += dt;
+    var t = clamp(this.actionTime / this.actionDuration, 0, 1);
+    this.drum.position.y = 0.62 + Math.sin(t * Math.PI) * 0.12;
+    if (t >= 0.42 && this.onRolled) {
+      this.onRolled();
+      this.onRolled = null;
+    }
+    if (t >= 1) {
+      this.busy = false;
+      this.drum.position.y = 0.62;
+    }
+  };
+
+  RoadRoller.prototype.tryRoll = function () {
+    if (this.busy) {
+      return false;
+    }
+    this.busy = true;
+    this.actionTime = 0;
+    this.velocity = 0;
+    return true;
+  };
+
+  RoadRoller.prototype._build = function () {
+    var yellow = 0xffee58;
+    var cabColor = 0xffc107;
+    var steel = 0x607d8b;
+    var tire = 0x212121;
+
+    var chassis = boxMesh(1.45, 0.28, 2.6, 0x546e7a);
+    chassis.position.set(0, 0.78, -0.15);
+    this.group.add(chassis);
+
+    this.drum = cylinderMesh(0.62, 0.62, 1.85, steel, {}, 18);
+    this.drum.rotation.z = Math.PI / 2;
+    this.drum.position.set(0, 0.62, 1.35);
+    this.group.add(this.drum);
+    this.wheels.push(this.drum);
+
+    var rear = cylinderMesh(0.48, 0.48, 0.42, tire, {}, 12);
+    rear.rotation.z = Math.PI / 2;
+    rear.position.set(-0.55, 0.48, -1.15);
+    this.group.add(rear);
+    this.wheels.push(rear);
+    var rearR = rear.clone();
+    rearR.position.x = 0.55;
+    this.group.add(rearR);
+    this.wheels.push(rearR);
+
+    var cab = boxMesh(1.35, 1.15, 1.25, cabColor);
+    cab.position.set(0, 1.55, -0.45);
+    this.group.add(cab);
+
+    var roof = boxMesh(1.42, 0.12, 1.32, yellow);
+    roof.position.set(0, 2.18, -0.45);
+    this.group.add(roof);
+
+    var windowFront = boxMesh(1.05, 0.5, 0.08, 0x81d4fa, {
+      roughness: 0.18,
+      metalness: 0.2,
+      transparent: true,
+      opacity: 0.88,
+    });
+    windowFront.position.set(0, 1.68, 0.2);
+    this.group.add(windowFront);
+
+    addCabSides(this.group, {
+      x: 0.72,
+      z: -0.45,
+      yWin: 1.72,
+      yDoor: 1.28,
+      winH: 0.38,
+      winD: 0.62,
+      doorH: 0.58,
+      doorD: 0.66,
+      doorColor: 0xffb300,
+    });
+
+    var eyeL = sphereMesh(0.09, 0xffffff);
+    eyeL.position.set(-0.2, 1.7, 0.22);
+    this.group.add(eyeL);
+    var eyeR = sphereMesh(0.09, 0xffffff);
+    eyeR.position.set(0.2, 1.7, 0.22);
+    this.group.add(eyeR);
+    var pupilL = sphereMesh(0.04, 0x263238);
+    pupilL.position.set(-0.2, 1.68, 0.3);
+    this.group.add(pupilL);
+    var pupilR = sphereMesh(0.04, 0x263238);
+    pupilR.position.set(0.2, 1.68, 0.3);
+    this.group.add(pupilR);
+  };
+
   MBS.Excavator = Excavator;
   MBS.DumpTruck = DumpTruck;
   MBS.ConcreteMixer = ConcreteMixer;
   MBS.Crane = Crane;
+  MBS.Bulldozer = Bulldozer;
+  MBS.RoadRoller = RoadRoller;
 })(window.MBS = window.MBS || {}, window.THREE);
