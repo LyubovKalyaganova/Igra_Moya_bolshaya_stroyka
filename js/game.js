@@ -45,6 +45,8 @@
     this.roller = new MBS.RoadRoller(this.scene);
     this.activeVehicle = this.excavator;
     this.mathFromMenu = false;
+    this.mathResumePhase = null;
+    this.mathResumeHint = null;
 
     var self = this;
     this.excavator.onScoop = function () {
@@ -164,7 +166,20 @@
 
     this.ui.onMathPlay = function () {
       self.mathFromMenu = true;
+      self.mathResumePhase = null;
+      self.mathResumeHint = null;
       self.playing = true;
+      self.audio.ensure();
+      self._beginMathPhase();
+    };
+
+    this.ui.onHudMath = function () {
+      if (!self.playing || self.paused || self.tasks.phase === 'math') {
+        return;
+      }
+      self.mathFromMenu = false;
+      self.mathResumePhase = self.tasks.phase;
+      self.mathResumeHint = self.tasks.hint;
       self.audio.ensure();
       self._beginMathPhase();
     };
@@ -198,6 +213,8 @@
         self._beginLampPhase();
       } else if (self.pendingPhase === 'free') {
         self._beginFreeRoam();
+      } else if (self.pendingPhase === 'resume') {
+        self._resumeAfterMath();
       } else if (self.pendingPhase === 'menu') {
         self._returnToMenu();
       }
@@ -451,6 +468,10 @@
       this._tryPlaceTree();
     } else if (phase === 'lamps') {
       this._tryPlaceLamp();
+    } else if (phase === 'free') {
+      this.audio.play('horn');
+      this.ui.speak('Бип-бип!', { throttleMs: 1800 });
+      this.idleTime = 0;
     }
   };
 
@@ -1238,12 +1259,25 @@
 
   Game.prototype._finishMath = function () {
     this.ui.hideMath();
-    this._completeTask(
-      20,
-      this.tasks.level.rewardMathTitle,
-      this.tasks.level.rewardMathText,
-      this.mathFromMenu ? 'menu' : 'free',
-    );
+    var nextPhase = 'free';
+    if (this.mathFromMenu) {
+      nextPhase = 'menu';
+    } else if (this.mathResumePhase) {
+      nextPhase = 'resume';
+    }
+    this._completeTask(20, this.tasks.level.rewardMathTitle, this.tasks.level.rewardMathText, nextPhase);
+  };
+
+  Game.prototype._resumeAfterMath = function () {
+    this.paused = false;
+    if (this.mathResumePhase) {
+      this.tasks.phase = this.mathResumePhase;
+      this.tasks.hint = this.mathResumeHint || this.tasks.hint;
+      this.ui.setHint(this.tasks.hint);
+    }
+    this.mathResumePhase = null;
+    this.mathResumeHint = null;
+    this.ui.showHudMath();
   };
 
   Game.prototype._returnToMenu = function () {
@@ -1332,6 +1366,8 @@
       phase === 'lamps'
     ) {
       ready = this._isNearWorkZone();
+    } else if (phase === 'free') {
+      ready = true;
     }
     this.ui.setNearDigZone(ready);
     if (ready && !this.wasNearAction && this.playing && !this.paused) {
@@ -1517,7 +1553,8 @@
     this.site.setFreeMode();
     this.ui.setHint(this.tasks.level.hintFree);
     this.ui.speak(this.tasks.level.voiceFree);
-    this.ui.setAction('👋', 'ПРИВЕТ');
+    this.ui.setAction('📯', 'СИГНАЛ');
+    this.ui.setNearDigZone(true);
     this.ui.showVehicleBar('crane');
   };
 

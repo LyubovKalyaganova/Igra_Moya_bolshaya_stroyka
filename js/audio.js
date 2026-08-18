@@ -110,7 +110,7 @@
   GameAudio.prototype.toggleMute = function () {
     this.setMuted(!this.muted);
     if (!this.muted) {
-      this.speak('Ура, звук включён!', { priority: 'low' });
+      this.speak('Класс, звук включён!', { priority: 'low' });
     }
   };
 
@@ -192,7 +192,7 @@
   };
 
   GameAudio.prototype._spokenPlain = function (phrase) {
-    return String(phrase)
+    var spoken = String(phrase)
       .replace(/\s+/g, ' ')
       .trim()
       .replace(/\s+и нажми/gi, ', и нажми')
@@ -202,6 +202,33 @@
       .replace(/!\s+/g, '! ')
       .replace(/\?\s+/g, '? ')
       .replace(/\.\s+/g, '. ');
+    var fixes = [
+      [/подъедь/gi, 'подъезжай'],
+      [/бетономешалкой/gi, 'бетономеша\u0301лкой'],
+      [/бетономешалка/gi, 'бетономеша\u0301лка'],
+      [/самосвалом/gi, 'самосва\u0301лом'],
+      [/самосвал/gi, 'самосва\u0301л'],
+      [/бульдозером/gi, 'бульдо\u0301зером'],
+      [/бульдозер/gi, 'бульдо\u0301зер'],
+      [/камешков/gi, 'ка\u0301мушков'],
+      [/камешки/gi, 'ка\u0301мушки'],
+      [/дружок/gi, 'дружо\u0301к'],
+      [/площадка/gi, 'площа\u0301дка'],
+      [/площадку/gi, 'площа\u0301дку'],
+      [/лавочки/gi, 'ла\u0301вочки'],
+      [/лавочку/gi, 'ла\u0301вочку'],
+      [/качели/gi, 'каче\u0301ли'],
+      [/песочницу/gi, 'песо\u0301чницу'],
+      [/песочница/gi, 'песо\u0301чница'],
+      [/фонарика/gi, 'фона\u0301рика'],
+      [/фонаря/gi, 'фонаря\u0301'],
+      [/ковша/gi, 'ковша\u0301'],
+    ];
+    var i;
+    for (i = 0; i < fixes.length; i += 1) {
+      spoken = spoken.replace(fixes[i][0], fixes[i][1]);
+    }
+    return spoken;
   };
 
   GameAudio.prototype._ssmlInner = function (phrase) {
@@ -762,6 +789,9 @@
     } else if (name === 'ready') {
       this._beep(659, 0.1, 0.035, 0);
       this._beep(784, 0.12, 0.03, 0.12);
+    } else if (name === 'horn') {
+      this._beep(392, 0.16, 0.05, 0);
+      this._beep(330, 0.22, 0.055, 0.14);
     } else if (name === 'click') {
       this._beep(740, 0.05, 0.025, 0);
     } else if (name === 'reward') {

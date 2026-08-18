@@ -4,6 +4,7 @@
     this.startScreen = root.querySelector('#start-screen');
     this.playButton = root.querySelector('#btn-play');
     this.mathButton = root.querySelector('#btn-math');
+    this.hudMathButton = root.querySelector('#btn-hud-math');
     this.hintEl = root.querySelector('#hint');
     this.starsEl = root.querySelector('#stars');
     this.countEl = root.querySelector('#count-pop');
@@ -29,6 +30,7 @@
     this.mathChoices = root.querySelector('#math-choices');
     this.mathLocked = false;
     this.audio = null;
+    this._cheerIndex = 0;
     this.onPlay = null;
     this.onNext = null;
     this.onDigPress = null;
@@ -36,6 +38,7 @@
     this.onMoveChange = null;
     this.onVehiclePick = null;
     this.onMathPlay = null;
+    this.onHudMath = null;
     this.onMathAnswer = null;
   }
 
@@ -54,6 +57,14 @@
         self.hideStart();
         if (self.onMathPlay) {
           self.onMathPlay();
+        }
+      });
+    }
+
+    if (this.hudMathButton) {
+      this.hudMathButton.addEventListener('click', function () {
+        if (self.onHudMath) {
+          self.onHudMath();
         }
       });
     }
@@ -152,14 +163,39 @@
     this.startScreen.classList.add('is-hidden');
     this.startScreen.setAttribute('hidden', '');
     this.startScreen.setAttribute('aria-hidden', 'true');
+    this.showHudMath();
   };
 
   GameUI.prototype.showStart = function () {
     this.hideMath();
     this.hideVehicleBar();
+    this.hideHudMath();
     this.startScreen.classList.remove('is-hidden');
     this.startScreen.removeAttribute('hidden');
     this.startScreen.setAttribute('aria-hidden', 'false');
+  };
+
+  GameUI.prototype.showHudMath = function () {
+    if (!this.hudMathButton) {
+      return;
+    }
+    this.hudMathButton.removeAttribute('hidden');
+    this.hudMathButton.classList.add('is-visible');
+  };
+
+  GameUI.prototype.hideHudMath = function () {
+    if (!this.hudMathButton) {
+      return;
+    }
+    this.hudMathButton.classList.remove('is-visible');
+    this.hudMathButton.setAttribute('hidden', '');
+  };
+
+  GameUI.prototype.nextCheer = function () {
+    var cheers = ['Класс!', 'Супер!', 'Молодец!', 'Здорово!', 'Умница!', 'Вот это да!', 'Браво!', 'Отлично!'];
+    var cheer = cheers[this._cheerIndex % cheers.length];
+    this._cheerIndex += 1;
+    return cheer;
   };
 
   GameUI.prototype.setHint = function (text) {
@@ -214,6 +250,7 @@
       this.rewardText.textContent = text;
       this.rewardScreen.removeAttribute('hidden');
       this.rewardScreen.classList.add('is-visible');
+      this.hideHudMath();
       this.speak(title + ' ' + text + ' Нажми жёлтую кнопку Дальше.', { queue: true });
     } else {
       var star = document.createElement('span');
@@ -230,7 +267,8 @@
       this.rewardText.textContent = text;
       this.rewardScreen.removeAttribute('hidden');
       this.rewardScreen.classList.add('is-visible');
-      this.speak('Ура! ' + title + ' ' + text + ' Нажми жёлтую кнопку Дальше.', { queue: true });
+      this.hideHudMath();
+      this.speak(this.nextCheer() + ' ' + title + ' ' + text + ' Нажми жёлтую кнопку Дальше.', { queue: true });
     }
     if (this.audio) {
       this.audio.play('reward');
@@ -242,6 +280,9 @@
     this.rewardScreen.setAttribute('hidden', '');
     if (this.rewardBadge) {
       this.rewardBadge.textContent = 'Задание выполнено!';
+    }
+    if (this.startScreen.classList.contains('is-hidden')) {
+      this.showHudMath();
     }
   };
 
@@ -301,6 +342,7 @@
 
     this.mathScreen.removeAttribute('hidden');
     this.mathScreen.classList.add('is-visible');
+    this.hideHudMath();
     this.speak(question.voice);
   };
 

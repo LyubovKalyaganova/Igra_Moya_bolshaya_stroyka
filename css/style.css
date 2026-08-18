@@ -113,6 +113,30 @@ body {
   background: #eceff1;
 }
 
+#btn-hud-math {
+  pointer-events: auto;
+  width: var(--sound);
+  height: var(--sound);
+  border: 0;
+  border-radius: calc(var(--sound) * 0.32);
+  background: #c8e6c9;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: calc(var(--sound) * 0.52);
+  line-height: 1;
+  touch-action: manipulation;
+}
+
+#btn-hud-math[hidden] {
+  display: none;
+}
+
+#btn-hud-math:active {
+  transform: translateY(4px);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.12);
+}
+
 #hint,
 #stars {
   background: rgba(255, 253, 247, 0.92);

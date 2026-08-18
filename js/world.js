@@ -112,21 +112,21 @@
 
   function makeDoor() {
     var group = new THREE.Group();
-    var panel = boxMesh(1.42, 1.58, 0.16, 0x8d6e63);
+    var panel = boxMesh(1.72, 2.65, 0.18, 0x8d6e63);
     group.add(panel);
-    var inset = boxMesh(1.18, 0.42, 0.04, 0x6d4c41);
-    inset.position.set(0, 0.28, 0.09);
+    var inset = boxMesh(1.28, 0.52, 0.04, 0x6d4c41);
+    inset.position.set(0, 0.62, 0.1);
     group.add(inset);
-    var glass = boxMesh(0.52, 0.32, 0.05, 0x81d4fa, {
+    var glass = boxMesh(0.58, 0.4, 0.05, 0x81d4fa, {
       roughness: 0.16,
       metalness: 0.18,
       transparent: true,
       opacity: 0.88,
     });
-    glass.position.set(0, 0.28, 0.12);
+    glass.position.set(0, 0.62, 0.13);
     group.add(glass);
     var knob = sphereMesh(0.08, 0xffeb3b);
-    knob.position.set(0.52, -0.12, 0.14);
+    knob.position.set(0.62, -0.72, 0.14);
     group.add(knob);
     return group;
   }
@@ -925,7 +925,7 @@
 
   ConstructionSite.prototype._createHouseParts = function () {
     var door = makeDoor();
-    door.position.set(0, 1.22, 3.42);
+    door.position.set(0, 1.755, 3.42);
     door.visible = false;
     door.userData.fullScale = 1;
     door.scale.set(1, 0.2, 1);
@@ -986,8 +986,8 @@
     this.houseParts.push(roof);
 
     var pileDoor = makeDoor();
-    pileDoor.scale.set(0.55, 0.55, 0.55);
-    pileDoor.position.set(6.5, 0.55, 4.85);
+    pileDoor.scale.set(0.42, 0.42, 0.42);
+    pileDoor.position.set(6.5, 0.58, 4.85);
     pileDoor.visible = false;
     this.scene.add(pileDoor);
     this.housePile.push(pileDoor);
