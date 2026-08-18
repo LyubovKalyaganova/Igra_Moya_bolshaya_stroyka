@@ -27,7 +27,10 @@
         <div id="hint">Нажми ИГРАТЬ</div>
         <div id="top-right">
           <div id="stars">⭐ 0</div>
-          <button type="button" id="btn-hud-math" hidden aria-label="Математика">🔢</button>
+          <button type="button" id="btn-hud-math" hidden aria-label="Задания">
+            <span class="hud-play-icon">🧩</span>
+            <span class="hud-play-label">ЗАДАНИЯ</span>
+          </button>
           <div id="sound-controls" aria-label="Громкость">
             <button type="button" id="btn-mute" aria-label="Включить или выключить звук">🔊</button>
             <button type="button" id="btn-vol-down" aria-label="Тише">−</button>
@@ -135,10 +138,10 @@
 
       <div id="math-screen" hidden>
         <div class="math-card">
-          <p class="reward-badge">Математика на стройке</p>
-          <p id="math-progress">1 / 5</p>
+          <p class="reward-badge" id="play-badge">Задания на стройке</p>
+          <p id="math-progress">1 / 7</p>
           <h2 id="math-prompt">Сколько звёзд?</h2>
-          <div id="math-visual" aria-hidden="true"></div>
+          <div id="math-visual"></div>
           <div id="math-choices"></div>
         </div>
       </div>
@@ -150,7 +153,7 @@
           <p class="start-sub">Построй дом, дорогу, мост и площадку</p>
           <div class="start-actions">
             <button type="button" id="btn-play">🏗️ ИГРАТЬ</button>
-            <button type="button" id="btn-math">🔢 МАТЕМАТИКА</button>
+            <button type="button" id="btn-math">🧩 ЗАДАНИЯ</button>
           </div>
         </div>
       </div>

@@ -24,11 +24,13 @@
     this.volDownButton = root.querySelector('#btn-vol-down');
     this.volUpButton = root.querySelector('#btn-vol-up');
     this.mathScreen = root.querySelector('#math-screen');
+    this.mathBadge = root.querySelector('#play-badge');
     this.mathProgress = root.querySelector('#math-progress');
     this.mathPrompt = root.querySelector('#math-prompt');
     this.mathVisual = root.querySelector('#math-visual');
     this.mathChoices = root.querySelector('#math-choices');
     this.mathLocked = false;
+    this._playPicked = null;
     this.audio = null;
     this._cheerIndex = 0;
     this.onPlay = null;
@@ -316,19 +318,55 @@
   };
 
   GameUI.prototype.showMath = function (question, index, total) {
-    var self = this;
     this.mathLocked = false;
+    this._playPicked = null;
+    if (this.mathBadge) {
+      this.mathBadge.textContent = 'Задания на стройке';
+    }
     this.mathProgress.textContent = index + 1 + ' / ' + total;
     this.mathPrompt.textContent = question.prompt;
-    this.mathVisual.textContent = question.visual || '';
     this.mathChoices.innerHTML = '';
     this.mathChoices.classList.remove('is-shake');
+    this.mathVisual.innerHTML = '';
+    this.mathVisual.textContent = '';
+    this.mathVisual.classList.toggle(
+      'has-html',
+      !!(question.visualHtml || question.kind === 'puzzle' || question.kind === 'shadow'),
+    );
+    this.mathScreen.classList.toggle('is-play', question.kind === 'puzzle' || question.kind === 'shadow');
 
-    question.choices.forEach(function (choice) {
+    if (question.kind === 'puzzle') {
+      this._showPuzzle(question);
+    } else if (question.kind === 'shadow') {
+      this._showShadow(question);
+    } else {
+      this._showChoice(question);
+    }
+
+    this.mathScreen.removeAttribute('hidden');
+    this.mathScreen.classList.add('is-visible');
+    this.hideHudMath();
+    this.speak(question.voice);
+  };
+
+  GameUI.prototype._showChoice = function (question) {
+    var self = this;
+    if (question.visualHtml) {
+      this.mathVisual.innerHTML = question.visualHtml;
+    } else {
+      this.mathVisual.textContent = question.visual || '';
+    }
+
+    (question.choices || []).forEach(function (choice) {
       var button = document.createElement('button');
       button.type = 'button';
       button.className = 'math-choice';
-      button.textContent = choice.label;
+      if (choice.labelHtml) {
+        button.classList.add('is-picture');
+        button.innerHTML = choice.labelHtml;
+      } else {
+        button.textContent = choice.label;
+      }
       button.addEventListener('click', function () {
         if (self.mathLocked) {
           return;
@@ -339,11 +377,162 @@
       });
       self.mathChoices.appendChild(button);
     });
+  };
 
-    this.mathScreen.removeAttribute('hidden');
-    this.mathScreen.classList.add('is-visible');
-    this.hideHudMath();
-    this.speak(question.voice);
+  GameUI.prototype._shuffle = function (items) {
+    var copy = items.slice();
+    var i;
+    for (i = copy.length - 1; i > 0; i -= 1) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = copy[i];
+      copy[i] = copy[j];
+      copy[j] = tmp;
+    }
+    return copy;
+  };
+
+  GameUI.prototype._showPuzzle = function (question) {
+    var self = this;
+    var cols = question.cols || 2;
+    var rows = question.rows || 2;
+    var total = cols * rows;
+    var order = [];
+    var i;
+    for (i = 0; i < total; i += 1) {
+      order.push(i);
+    }
+    order = this._shuffle(order);
+
+    var board = document.createElement('div');
+    board.className = 'puzzle-board';
+    board.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+
+    var ghost = document.createElement('div');
+    ghost.className = 'puzzle-ghost';
+    ghost.innerHTML = question.art;
+    board.appendChild(ghost);
+
+    for (i = 0; i < total; i += 1) {
+      var slot = document.createElement('button');
+      slot.type = 'button';
+      slot.className = 'puzzle-slot';
+      slot.setAttribute('data-slot', String(i));
+      slot.addEventListener('click', function () {
+        self._placePuzzle(question, this);
+      });
+      board.appendChild(slot);
+    }
+    this.mathVisual.appendChild(board);
+
+    order.forEach(function (id) {
+      var piece = document.createElement('button');
+      piece.type = 'button';
+      piece.className = 'puzzle-piece';
+      piece.setAttribute('data-piece', String(id));
+      piece.innerHTML = question.art;
+      var col = id % cols;
+      var row = Math.floor(id / cols);
+      var art = piece.querySelector('svg');
+      if (art) {
+        art.setAttribute(
+          'viewBox',
+          col * (200 / cols) + ' ' + row * (160 / rows) + ' ' + 200 / cols + ' ' + 160 / rows,
+        );
+      }
+      piece.addEventListener('click', function () {
+        if (self.mathLocked || this.classList.contains('is-placed')) {
+          return;
+        }
+        var prev = self.mathChoices.querySelector('.puzzle-piece.is-picked');
+        if (prev) {
+          prev.classList.remove('is-picked');
+        }
+        this.classList.add('is-picked');
+        self._playPicked = this;
+      });
+      self.mathChoices.appendChild(piece);
+    });
+  };
+
+  GameUI.prototype._placePuzzle = function (question, slot) {
+    if (this.mathLocked || !this._playPicked || slot.classList.contains('is-filled')) {
+      return;
+    }
+    var pieceId = this._playPicked.getAttribute('data-piece');
+    var slotId = slot.getAttribute('data-slot');
+    if (pieceId !== slotId) {
+      this.markMathWrong();
+      return;
+    }
+    slot.classList.add('is-filled');
+    slot.innerHTML = this._playPicked.innerHTML;
+    this._playPicked.classList.add('is-placed');
+    this._playPicked.classList.remove('is-picked');
+    this._playPicked = null;
+    if (this.mathVisual.querySelectorAll('.puzzle-slot.is-filled').length === (question.cols || 2) * (question.rows || 2)) {
+      if (this.onMathAnswer) {
+        this.onMathAnswer('done', question, slot);
+      }
+    }
+  };
+
+  GameUI.prototype._showShadow = function (question) {
+    var self = this;
+    var names = question.vehicles || [];
+    var top = document.createElement('div');
+    top.className = 'shadow-row';
+    names.forEach(function (name) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'shadow-item is-color';
+      button.setAttribute('data-name', name);
+      button.innerHTML = MBS.vehicleSvg(name);
+      button.addEventListener('click', function () {
+        if (self.mathLocked || this.classList.contains('is-matched')) {
+          return;
+        }
+        var prev = self.mathVisual.querySelector('.shadow-item.is-picked');
+        if (prev) {
+          prev.classList.remove('is-picked');
+        }
+        this.classList.add('is-picked');
+        self._playPicked = this;
+      });
+      top.appendChild(button);
+    });
+    this.mathVisual.appendChild(top);
+
+    this._shuffle(names).forEach(function (name) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'shadow-item is-shade';
+      button.setAttribute('data-name', name);
+      button.innerHTML = MBS.vehicleSvg(name, true);
+      button.addEventListener('click', function () {
+        self._placeShadow(question, this);
+      });
+      self.mathChoices.appendChild(button);
+    });
+  };
+
+  GameUI.prototype._placeShadow = function (question, shade) {
+    if (this.mathLocked || !this._playPicked || shade.classList.contains('is-matched')) {
+      return;
+    }
+    if (this._playPicked.getAttribute('data-name') !== shade.getAttribute('data-name')) {
+      this.markMathWrong();
+      return;
+    }
+    this._playPicked.classList.add('is-matched');
+    this._playPicked.classList.remove('is-picked');
+    shade.classList.add('is-matched');
+    this._playPicked = null;
+    var need = (question.vehicles || []).length;
+    if (this.mathVisual.querySelectorAll('.shadow-item.is-matched').length >= need) {
+      if (this.onMathAnswer) {
+        this.onMathAnswer('done', question, shade);
+      }
+    }
   };
 
   GameUI.prototype.markMathWrong = function () {
@@ -361,9 +550,10 @@
   };
 
   GameUI.prototype.hideMath = function () {
-    this.mathScreen.classList.remove('is-visible');
+    this.mathScreen.classList.remove('is-visible', 'is-play');
     this.mathScreen.setAttribute('hidden', '');
     this.mathLocked = false;
+    this._playPicked = null;
   };
 
   MBS.GameUI = GameUI;
