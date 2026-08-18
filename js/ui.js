@@ -12,6 +12,7 @@
     this.actionLabel = root.querySelector('.action-label');
     this.moveButtons = root.querySelectorAll('[data-move]');
     this.rewardScreen = root.querySelector('#reward-screen');
+    this.rewardBadge = root.querySelector('#reward-screen .reward-badge');
     this.rewardStars = root.querySelector('#reward-stars');
     this.rewardTitle = root.querySelector('#reward-title');
     this.rewardText = root.querySelector('#reward-text');
@@ -186,32 +187,62 @@
     this.countEl.classList.add('is-pop');
   };
 
-  GameUI.prototype.showReward = function (starCount, title, text) {
+  GameUI.prototype.showReward = function (starCount, title, text, kind) {
     this.rewardStars.innerHTML = '';
+    this.rewardScreen.classList.toggle('is-finale', kind === 'trophy');
+    if (this.rewardBadge) {
+      this.rewardBadge.textContent = kind === 'trophy' ? 'Город построен!' : 'Задание выполнено!';
+    }
 
-    var star = document.createElement('span');
-    star.className = 'reward-star is-closeup';
-    star.textContent = '⭐';
-    this.rewardStars.appendChild(star);
+    if (kind === 'trophy') {
+      var trophy = document.createElement('div');
+      trophy.className = 'reward-trophy';
+      trophy.setAttribute('aria-hidden', 'true');
+      trophy.innerHTML =
+        '<svg viewBox="0 0 120 120" class="reward-trophy-svg">' +
+        '<ellipse cx="60" cy="108" rx="28" ry="6" fill="#e09100" opacity="0.35"/>' +
+        '<rect x="36" y="86" width="48" height="10" rx="4" fill="#f9a825"/>' +
+        '<path d="M44 86 L48 72 H72 L76 86 Z" fill="#ffc107"/>' +
+        '<path d="M38 28 H82 Q94 28 94 42 Q94 62 60 70 Q26 62 26 42 Q26 28 38 28 Z" fill="#ffd54f" stroke="#f9a825" stroke-width="3"/>' +
+        '<path d="M26 36 Q12 38 12 50 Q12 64 32 58" fill="none" stroke="#ffb300" stroke-width="7" stroke-linecap="round"/>' +
+        '<path d="M94 36 Q108 38 108 50 Q108 64 88 58" fill="none" stroke="#ffb300" stroke-width="7" stroke-linecap="round"/>' +
+        '<circle cx="60" cy="46" r="12" fill="#fff59d"/>' +
+        '<path d="M60 36 L63 43 H70 L64 48 L66 55 L60 51 L54 55 L56 48 L50 43 H57 Z" fill="#ef6c00"/>' +
+        '</svg>';
+      this.rewardStars.appendChild(trophy);
+      this.rewardTitle.textContent = title;
+      this.rewardText.textContent = text;
+      this.rewardScreen.removeAttribute('hidden');
+      this.rewardScreen.classList.add('is-visible');
+      this.speak(title + ' ' + text + ' Нажми жёлтую кнопку Дальше.', { queue: true });
+    } else {
+      var star = document.createElement('span');
+      star.className = 'reward-star is-closeup';
+      star.textContent = '⭐';
+      this.rewardStars.appendChild(star);
 
-    var plus = document.createElement('p');
-    plus.className = 'reward-plus';
-    plus.textContent = '+1 звезда';
-    this.rewardStars.appendChild(plus);
+      var plus = document.createElement('p');
+      plus.className = 'reward-plus';
+      plus.textContent = '+1 звезда';
+      this.rewardStars.appendChild(plus);
 
-    this.rewardTitle.textContent = title;
-    this.rewardText.textContent = text;
-    this.rewardScreen.removeAttribute('hidden');
-    this.rewardScreen.classList.add('is-visible');
-    this.speak('Ура! ' + title + ' ' + text + ' Нажми жёлтую кнопку Дальше.', { queue: true });
+      this.rewardTitle.textContent = title;
+      this.rewardText.textContent = text;
+      this.rewardScreen.removeAttribute('hidden');
+      this.rewardScreen.classList.add('is-visible');
+      this.speak('Ура! ' + title + ' ' + text + ' Нажми жёлтую кнопку Дальше.', { queue: true });
+    }
     if (this.audio) {
       this.audio.play('reward');
     }
   };
 
   GameUI.prototype.hideReward = function () {
-    this.rewardScreen.classList.remove('is-visible');
+    this.rewardScreen.classList.remove('is-visible', 'is-finale');
     this.rewardScreen.setAttribute('hidden', '');
+    if (this.rewardBadge) {
+      this.rewardBadge.textContent = 'Задание выполнено!';
+    }
   };
 
   GameUI.prototype.showVehicleBar = function (activeName) {

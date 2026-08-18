@@ -88,7 +88,7 @@
   }
 
   function driveGroup(vehicle, input, bounds, dt, obstacles) {
-    var turn = (input.left ? 1 : 0) - (input.right ? 1 : 0);
+    var turn = (input.right ? 1 : 0) - (input.left ? 1 : 0);
     vehicle.group.rotation.y += turn * vehicle.turnSpeed * dt;
 
     var target = 0;

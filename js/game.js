@@ -548,7 +548,7 @@
     this._completeTask(2, this.tasks.level.rewardHaulTitle, this.tasks.level.rewardHaulText, 'pour');
   };
 
-  Game.prototype._completeTask = function (levelId, title, text, nextPhase) {
+  Game.prototype._completeTask = function (levelId, title, text, nextPhase, rewardKind) {
     this.paused = true;
     this.input.reset();
     this.pendingPhase = nextPhase;
@@ -564,7 +564,7 @@
       }
       self.progress.completedLevels = levels;
       MBS.saveProgress(self.progress);
-      self.ui.showReward(self.rewards.stars, title, text);
+      self.ui.showReward(self.rewards.stars, title, text, rewardKind);
     }, 1200);
   };
 
@@ -1182,7 +1182,13 @@
     this.ui.setHint(this.tasks.hint);
     this.ui.speakCount(result.count);
     if (result.completed) {
-      this._completeTask(13, this.tasks.level.rewardLampsTitle, this.tasks.level.rewardLampsText, 'free');
+      this._completeTask(
+        13,
+        this.tasks.level.rewardCityTitle,
+        this.tasks.level.rewardCityText,
+        'free',
+        'trophy',
+      );
     }
   };
 
@@ -1544,7 +1550,7 @@
     }
     var yaw = (this._cameraFocus === 'house' ? 0 : vehicle.group.rotation.y) + this.camYaw;
     var dist = this.camDistance * this.zoom;
-    var offset = new THREE.Vector3(0, Math.sin(this.camPitch) * dist, Math.cos(this.camPitch) * dist);
+    var offset = new THREE.Vector3(0, Math.sin(this.camPitch) * dist, -Math.cos(this.camPitch) * dist);
     offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
     var desired = focus.clone().add(offset);
     var follow = 1 - Math.exp(-3.4 * dt);
