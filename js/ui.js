@@ -211,6 +211,22 @@
     return cheer;
   };
 
+  GameUI.prototype.nextPlayPraise = function (isLast) {
+    var praises = [
+      'Молодец!',
+      'Умница!',
+      'Ты справился!',
+      'Класс!',
+      'Супер!',
+    ];
+    var praise = praises[this._cheerIndex % praises.length];
+    this._cheerIndex += 1;
+    if (isLast) {
+      return praise;
+    }
+    return praise + ' Давай дальше!';
+  };
+
   GameUI.prototype.setHint = function (text) {
     this.hintEl.textContent = text;
   };

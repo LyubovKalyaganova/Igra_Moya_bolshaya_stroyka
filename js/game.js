@@ -1284,12 +1284,11 @@
     }
     this.ui.markMathRight(button);
     this.idleTime = 0;
-    if (question.speakNumber && typeof question.answer === 'number') {
+    if (typeof question.answer === 'number') {
       this.ui.showCount(question.answer);
-      this.ui.speakCount(question.answer);
-    } else {
-      this.ui.speak('Молодец!');
     }
+    var isLast = this.mathIndex + 1 >= this._playList().length;
+    this.ui.speak(this.ui.nextPlayPraise(isLast));
     var self = this;
     this._clearMathTimer();
     this._mathTimer = window.setTimeout(function () {
@@ -1300,7 +1299,7 @@
       } else {
         self._showCurrentMath();
       }
-    }, 900);
+    }, isLast ? 1400 : 2200);
   };
 
   Game.prototype._clearMathTimer = function () {
