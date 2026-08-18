@@ -351,9 +351,10 @@
       this.mathBadge.textContent = 'Задания на стройке';
     }
     this.mathChoices.innerHTML = '';
-    this.mathChoices.classList.remove('is-shake');
+    this.mathChoices.classList.remove('is-shake', 'is-puzzle-tray');
     this.mathVisual.innerHTML = '';
     this.mathVisual.textContent = '';
+    this.mathScreen.classList.remove('is-puzzle');
     this.mathScreen.removeAttribute('hidden');
     this.mathScreen.classList.add('is-visible');
     this.hideHudMath();
@@ -408,6 +409,7 @@
       !!(question.visualHtml || question.kind === 'puzzle' || question.kind === 'shadow'),
     );
     this.mathScreen.classList.toggle('is-play', question.kind === 'puzzle' || question.kind === 'shadow');
+    this.mathScreen.classList.toggle('is-puzzle', question.kind === 'puzzle');
 
     if (question.kind === 'puzzle') {
       this._showPuzzle(question);
@@ -496,6 +498,7 @@
       board.appendChild(slot);
     }
     this.mathVisual.appendChild(board);
+    this.mathChoices.classList.add('is-puzzle-tray');
 
     order.forEach(function (id) {
       var piece = document.createElement('button');
@@ -623,7 +626,7 @@
   };
 
   GameUI.prototype.hideMath = function () {
-    this.mathScreen.classList.remove('is-visible', 'is-play');
+    this.mathScreen.classList.remove('is-visible', 'is-play', 'is-puzzle');
     this.mathScreen.setAttribute('hidden', '');
     this.mathLocked = false;
     this._playPicked = null;

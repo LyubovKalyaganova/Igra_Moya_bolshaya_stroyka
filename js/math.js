@@ -7,13 +7,27 @@
     return Math.min(target, current + 1);
   }
 
-  function bricksHtml(count) {
+  function bricksHtml(count, extraClass) {
+    var brickClass = extraClass ? 'clay-brick ' + extraClass : 'clay-brick';
     var html = '<div class="play-bricks">';
     var i;
     for (i = 0; i < count; i += 1) {
-      html += '<span class="clay-brick" aria-hidden="true"></span>';
+      html += '<span class="' + brickClass + '" aria-hidden="true"></span>';
     }
     return html + '</div>';
+  }
+
+  function bricksTakeAwayHtml(had, removed) {
+    return (
+      '<div class="play-sub">' +
+      '<div class="play-sub-row"><span class="play-sub-label">Было</span>' +
+      bricksHtml(had) +
+      '</div>' +
+      '<div class="play-sub-row is-removed"><span class="play-sub-label">Убрали</span>' +
+      bricksHtml(removed, 'is-taken') +
+      '</div>' +
+      '</div>'
+    );
   }
 
   function vehiclesHtml(name, count) {
@@ -234,7 +248,7 @@
       id: 'sub',
       kind: 'choice',
       prompt: 'Было 4 кирпича. Убрали 1. Сколько осталось?',
-      visualHtml: '<div class="play-formula">' + bricksHtml(4) + '<span class="play-op">→</span>' + bricksHtml(3) + '</div>',
+      visualHtml: bricksTakeAwayHtml(4, 1),
       voice: 'Было четыре кирпича. Один убрали. Сколько осталось?',
       choices: digitChoices(3),
       answer: 3,

@@ -122,7 +122,7 @@
       hintBenchesCount: function (current, target) {
         return 'Лавочка ' + current + ' из ' + target;
       },
-      hintBenchesDone: 'Лавочки стоят!',
+      hintBenchesDone: 'Лавочки на месте!',
       hintTrees: 'Посади 4 дерева.',
       voiceTrees: 'Посади четыре деревца. Подъезжай к кругу и нажми Посадить.',
       voiceReadyTrees: 'Круг рядом! Жми Посадить!',
@@ -167,7 +167,7 @@
       rewardBridgeText: 'Четыре блока на месте!',
       rewardPlayTitle: 'Площадка играет!',
       rewardPlayText: 'Горка, качели и песочница на месте!',
-      rewardBenchesTitle: 'Лавочки стоят!',
+      rewardBenchesTitle: 'Лавочки на месте!',
       rewardBenchesText: 'Ты поставил три лавочки!',
       rewardTreesTitle: 'Деревья растут!',
       rewardTreesText: 'Ты посадил четыре дерева!',
